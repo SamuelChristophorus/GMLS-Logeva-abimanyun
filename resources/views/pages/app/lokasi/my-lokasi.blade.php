@@ -90,7 +90,7 @@
             <a href="{{ route('lokasi.show', $lokasi->id) }}"
                class="block relative h-48 sm:h-56 overflow-hidden">
 
-                <img src="{{asset('storage/'. $lokasi->gambar_lokasi)}}"
+                <img src="{{ asset('storage/'. $lokasi->gambar_lokasi) }}"
                      alt="{{ $lokasi->nama_lokasi }}"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
 

@@ -60,31 +60,50 @@ class LokasiController extends Controller
         return view('pages.app.lokasi.create', compact('desas'));
     }
 
-    public function store(StoreLokasiRequest $request){
-        $data = $request->validated();
-        $data['relawan_id'] = Auth()->user()->relawan->id;
-        $data['gambar_lokasi'] = $request -> file('gambar_lokasi')->store('assets/lokasi/gambar', 'public');
-        $lokasi = $this->lokasiRepository->createLokasi($data);
-        
-        // Create sphere data terkait
-        $sphereData = $request->only([
-            'air_hidup', 
-            'air_kebersihan', 
-            'air_memasak',
-            'toilet_pendek',
-            'toilet_panjang',
-            'kalori',
-            'protein',
-            'lemak'
-        ]);
-        
-        if (!empty(array_filter($sphereData))) {
-            $sphereData['lokasi_id'] = $lokasi->id;
-            $this->sphereLokasiRepository->createSphereLokasi($sphereData);
+    public function store(StoreLokasiRequest $request)
+{
+    $data = $request->validated();
+
+    $data['relawan_id'] = auth()->user()->relawan->id;
+
+    if ($request->hasFile('gambar_lokasi')) {
+        $file = $request->file('gambar_lokasi');
+
+        $filename = time().'_'.$file->getClientOriginalName();
+
+        $destinationPath = base_path('../logeva/storage/assets/lokasi/gambar');
+
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
         }
 
-        return redirect()->route('lokasi.success')->with('success','Lokasi Berhasil Ditambahkan');
+        $file->move($destinationPath, $filename);
+
+        $data['gambar_lokasi'] = 'assets/lokasi/gambar/'.$filename;
     }
+
+    $lokasi = $this->lokasiRepository->createLokasi($data);
+
+    $sphereData = $request->only([
+        'air_hidup',
+        'air_kebersihan',
+        'air_memasak',
+        'toilet_pendek',
+        'toilet_panjang',
+        'kalori',
+        'protein',
+        'lemak'
+    ]);
+
+    if (!empty(array_filter($sphereData))) {
+        $sphereData['lokasi_id'] = $lokasi->id;
+        $this->sphereLokasiRepository->createSphereLokasi($sphereData);
+    }
+
+    return redirect()
+        ->route('lokasi.success')
+        ->with('success', 'Lokasi Berhasil Ditambahkan');
+}
 
 
     public function success(){

@@ -66,7 +66,7 @@
 <div class="mt-4 flex items-center gap-3">
 
     <img src="{{ asset('storage/' . $lokasi->relawan->avatar) }}"
-         class="w-10 h-10 rounded-full border-2 border-white object-cover">
+     class="w-10 h-10 rounded-full border-2 border-white object-cover">
 
     <div>
         <p class="text-sm text-slate-400">
@@ -139,7 +139,7 @@
     {{-- FOTO --}}
     <div class="lg:col-span-2 flex items-center justify-center p-6">
 
-        <img src="{{ asset('storage/' . $lokasi->gambar_lokasi) }}"
+        <img src="{{ asset('storage/'. $lokasi->gambar_lokasi) }}"
              alt="{{ $lokasi->nama_lokasi }}"
              class="w-full max-w-md h-[220px] lg:h-[260px] object-cover rounded-2xl shadow-lg border border-slate-600">
 

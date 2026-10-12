@@ -45,7 +45,7 @@
             <!-- Image Area -->
             <div class="relative h-56 overflow-hidden">
 
-                <img src="{{ asset('storage/'. $lokasi->gambar_lokasi) }}"
+               <img src="{{ asset('storage/'. $lokasi->gambar_lokasi) }}"
                      alt="{{ $lokasi->nama_lokasi }}"
                      class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
 

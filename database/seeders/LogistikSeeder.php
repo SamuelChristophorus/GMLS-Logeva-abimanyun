@@ -18,14 +18,6 @@ class LogistikSeeder extends Seeder
         );
 
         Logistik::firstOrCreate(
-            ['nama_item' => 'Mie Instan'],
-            [
-                'kategori_logistik_id' => 1,
-                'satuan' => 'dus',
-            ]
-        );
-
-        Logistik::firstOrCreate(
             ['nama_item' => 'Air Mineral'],
             [
                 'kategori_logistik_id' => 2,

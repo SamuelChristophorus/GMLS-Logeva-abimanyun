@@ -23,19 +23,57 @@ class LoginController extends Controller
         return view('pages.auth.login');
     }
 
-    public function store(StoreLoginRequest $request){
-        $credentials = $request->validated();
+    public function store(StoreLoginRequest $request)
+{
+    $credentials = $request->validated();
 
-        if ($this->authRepository->login($credentials)){
-            if(Auth::user()->hasRole('admin')){
-                return redirect()->route('admin.dashboard');
-            }
-            return redirect()->route('home');
+    if ($this->authRepository->login($credentials)) {
+
+        $user = Auth::user();
+
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
         }
-        return redirect()->route('login')->withErrors([
-            'email'=> 'Email atau password salah',
-        ]);
+
+        if ($user->status === 'pending') {
+            $this->authRepository->logout();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun Anda masih menunggu persetujuan admin.',
+            ]);
+        }
+
+        if ($user->status === 'rejected') {
+            $this->authRepository->logout();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Pendaftaran akun Anda ditolak oleh admin.',
+            ]);
+        }
+
+        if ($user->status === 'suspended') {
+            $this->authRepository->logout();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun Anda sedang disuspend oleh admin.',
+            ]);
+        }
+
+        if ($user->status !== 'approved' || !$user->is_verified) {
+            $this->authRepository->logout();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun Anda belum terverifikasi.',
+            ]);
+        }
+
+        return redirect()->route('home');
     }
+
+    return redirect()->route('login')->withErrors([
+        'email' => 'Email atau password salah',
+    ]);
+}
 
     public function logout(){
         $this->authRepository->logout();

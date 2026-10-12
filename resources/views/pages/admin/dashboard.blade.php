@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
-                    <a href="/admin/lokasi/${lokasi.id}" class="mt-2 block w-full text-center bg-black-600 hover:bg-white-700 text-black text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
+                    <a href="{{ url('admin/lokasi') }}/${lokasi.id}" class="mt-2 block w-full text-center bg-black-600 hover:bg-white-700 text-black text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
                         Kelola Data <i class="fas fa-arrow-right ml-1 opacity-70"></i>
                     </a>
                 </div>

@@ -289,7 +289,7 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 
     <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/anis.jpeg') }}"
+        <img src="{{ asset('assets/team/anis.jpeg') }}"
              alt="Anis"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">
@@ -298,7 +298,7 @@
     </div>
 
     <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/zedro.jpeg') }}"
+        <img src="{{ asset('assets/team/zedro.jpeg') }}"
              alt="Zedro"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">
@@ -307,7 +307,7 @@
     </div>
 
     <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/prajna.jpeg') }}"
+        <img src="{{ asset('assets/team/prajna.jpeg') }}"
              alt="Prajna"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">
@@ -316,7 +316,7 @@
     </div>
 
             <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/melati.jpeg') }}"
+        <img src="{{ asset('assets/team/melati.jpeg') }}"
              alt="melati"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">
@@ -324,7 +324,7 @@
                         </div>
 
                         <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/melisa.jpeg') }}"
+        <img src="{{ asset('assets/team/melisa.jpeg') }}"
              alt="melisa"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">
@@ -332,7 +332,7 @@
                         </div>
 
                         <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('storage/assets/avatar/farrel.jpeg') }}"
+        <img src="{{ asset('assets/team/farrel.jpeg') }}"
              alt="farrel"
              class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
         <h5 class="font-semibold text-white text-sm">

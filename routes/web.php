@@ -78,7 +78,9 @@ Route::get('/register', [RegisterController::class,'index'])->name('register');
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
 
 /*
+|--------------------------------------------------------------------------
 | ADMIN PANEL
+|--------------------------------------------------------------------------
 */
 
 Route::prefix('admin')
@@ -89,12 +91,45 @@ Route::prefix('admin')
         Route::get('/dashboard',[DashboardController::class,'index'])
             ->name('dashboard');
 
+        /*
+        |--------------------------------------------------------------------------
+        | APPROVAL RELAWAN
+        |--------------------------------------------------------------------------
+        */
+
+        Route::patch('/relawan/{relawan}/accept', [RelawanController::class, 'accept'])
+            ->name('relawan.accept');
+
+        Route::patch('/relawan/{relawan}/reject', [RelawanController::class, 'reject'])
+            ->name('relawan.reject');
+
+        Route::patch('/relawan/{relawan}/suspend', [RelawanController::class, 'suspend'])
+            ->name('relawan.suspend');
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOKASI
+        |--------------------------------------------------------------------------
+        */
+
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESOURCE
+        |--------------------------------------------------------------------------
+        */
 
         Route::resource('relawan', RelawanController::class);
         Route::resource('desa', DesaController::class);
         Route::resource('lokasi', LokasiController::class);
+
+        /*
+        |--------------------------------------------------------------------------
+        | STATUS LOKASI
+        |--------------------------------------------------------------------------
+        */
 
         Route::get('/status-lokasi/{lokasiId}/create', [StatusLokasiController::class,'create'])
             ->name('status-lokasi.create');
@@ -103,7 +138,9 @@ Route::prefix('admin')
             ->except('create');
 
         /*
+        |--------------------------------------------------------------------------
         | LOGISTIK ADMIN
+        |--------------------------------------------------------------------------
         */
 
         Route::resource('logistik', AdminLogistikController::class)
@@ -111,7 +148,9 @@ Route::prefix('admin')
     });
 
 /*
+|--------------------------------------------------------------------------
 | USER LOGISTIK (STOK MASUK)
+|--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth'])->group(function () {

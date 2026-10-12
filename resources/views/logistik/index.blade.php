@@ -34,16 +34,7 @@
             </a>
 
         </div>
-
-    </div>
 </div>
-    
-      </div>
-      
-
-@php
-// kode analisis
-@endphp
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
 
@@ -170,38 +161,35 @@
 
         @forelse($stokLogistiks as $stok)
 
-       
-
         @php
 
-$kebutuhanPerHari = optional($stok->logistik)->kebutuhan_harian ?? 0;
+        $kebutuhanPerHari = optional($stok->logistik)->kebutuhan_harian ?? 0;
 
-/*
-Khusus item yang memakai standar SPHERE
-*/
-if(strtolower(optional($stok->logistik)->nama_item) == 'beras')
-{
-    $kebutuhanPerHari =
-    round(
-        ($lokasi->sphereLokasi->kalori / 180 * 100) / 1000,
-        2
-    );
-}
+        /*
+        Khusus item yang memakai standar SPHERE
+        */
+        if(strtolower(optional($stok->logistik)->nama_item) == 'beras')
+        {
+            $kebutuhanPerHari =
+            round(
+            ($lokasi->sphereLokasi->kalori / 180 * 100) / 1000, 2
+            );
+        }
 
-elseif(strtolower(optional($stok->logistik)->nama_item) == 'air mineral')
-{
-    $kebutuhanPerHari =
-    $lokasi->sphereLokasi->air_hidup +
-    $lokasi->sphereLokasi->air_kebersihan +
-    $lokasi->sphereLokasi->air_memasak;
-}
+        elseif(strtolower(optional($stok->logistik)->nama_item) == 'air mineral')
+        {
+            $kebutuhanPerHari =
+            $lokasi->sphereLokasi->air_hidup +
+            $lokasi->sphereLokasi->air_kebersihan +
+            $lokasi->sphereLokasi->air_memasak;
+        }
 
-$hariBertahan =
-$kebutuhanPerHari > 0
-? round($stok->jumlah_stok / $kebutuhanPerHari, 2)
-: 0;
+        $hariBertahan =
+        $kebutuhanPerHari > 0
+        ? round($stok->jumlah_stok / $kebutuhanPerHari, 2)
+        : 0;
 
-@endphp
+        @endphp
 
         <tr class="border-t border-slate-100 hover:bg-slate-50 transition">
 
@@ -309,8 +297,8 @@ $kebutuhanPerHari > 0
 
         <tr>
 
-            <td colspan="3"
-                class="px-6 py-8 text-center text-slate-400">
+             <td colspan="6"
+             class="px-6 py-8 text-center text-slate-400">
 
                 Belum ada stok logistik
 

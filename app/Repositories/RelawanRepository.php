@@ -16,17 +16,21 @@ class RelawanRepository implements RelawanRepositoryInterface
         return Relawan::where('id', $id)->first();
     }
 
-    public function createRelawan(array $data){
-        $user = User::create([
-            'name'=> $data['name'],
-            'email'=> $data['email'],
-            'password'=> bcrypt($data['password']),
-        ]);
+    public function createRelawan(array $data)
+{
+    $user = User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => bcrypt($data['password']),
+        'status' => 'pending',
+        'is_verified' => false,
+        'approved_at' => null,
+    ]);
 
-        $user->assignRole('relawan');
-        
-        return $user->relawan()->create($data);
-    }
+    $user->assignRole('relawan');
+
+    return $user->relawan()->create($data);
+}
 
     public function updateRelawan(int $id, array $data){
         $relawan = $this->getRelawanById($id);
