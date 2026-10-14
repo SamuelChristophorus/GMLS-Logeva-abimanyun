@@ -25,7 +25,7 @@ use App\Http\Controllers\StokMasukController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [HomeController::class,'index'])->name('home');
+Route::get('/', [HomeController::class,'index'])->name('home'); 
 
 Route::get('/lokasis', [UserLokasiController::class,'index'])->name('lokasi.index');
 Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.show');
