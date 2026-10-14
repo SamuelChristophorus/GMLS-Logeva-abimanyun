@@ -1,483 +1,205 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
-@section('title', 'Home')
+@section('title', 'Monitoring Lokasi')
+
+@php
+    $semuaLokasi = \App\Models\Lokasi::select(
+        'id', 'nama_lokasi', 'alamat_lokasi', 'latitude', 'longitude', 'kapasitas_pengungsi'
+    )->get();
+
+    $totalTea       = $semuaLokasi->count();
+    $totalDesa      = \App\Models\Desa::count();
+    $totalKapasitas = $semuaLokasi->sum('kapasitas_pengungsi');
+
+    $tim = [
+        ['anis.jpeg',   'Anis Faisal Reza'],
+        ['zedro.jpeg',  'Zedro Deniro Mason'],
+        ['prajna.jpeg', 'Prajna Ananda Citra'],
+        ['melati.jpeg', 'Melati Octaviana Purba'],
+        ['melisa.jpeg', 'Melisa Ashley'],
+        ['farrel.jpeg', 'Farrel Safwan'],
+    ];
+@endphp
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="space-y-6">
 
-    <!-- HERO SECTION -->
-    <div class="relative overflow-hidden bg-gradient-to-br from-gray-500 via-gray-800 to-black rounded-3xl p-8 md:p-12 mb-10 shadow-2xl">
-
-        <!-- Blur Background -->
-        <div class="absolute inset-0 opacity-10">
-            <div class="absolute -top-20 -right-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-20 -left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-        </div>
-
-        <div class="relative z-10 flex flex-col lg:flex-row items-center gap-10">
-
-            <!-- Logo -->
-            <div class="bg-white p-5 rounded-full shadow-2xl">
-                <img src="{{ asset('assets/logo/logogmls.png') }}"
-                     alt="logo"
-                     class="w-28 h-28 md:w-36 md:h-36 object-contain">
-            </div>
-
-            <!-- Text -->
-            <div class="text-white flex-1">
-
-                <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-sm mb-5">
-                    GMLS Logeva
-                </div>
-
-                @auth
-                <h2 class="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
-                    Hi, {{ Auth::user()->name }} 👋
-                </h2>
-                @endauth
-
-                <h1 class="text-3xl md:text-5xl font-black leading-tight mb-5">
-                    Pantau & Kelola <br>
-                    Tempat Evakuasi Akhir
-                </h1>
-
-                <p class="text-gray-200 text-lg max-w-3xl leading-relaxed">
-                    Sistem monitoring dan pengelolaan Tempat Evakuasi Akhir (TEA)
-                    untuk membantu proses mitigasi bencana secara cepat, tepat,
-                    dan terintegrasi.
-                </p>
-
-                <!-- Statistik Modern -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-8">
-
-                    <!-- Total TEA -->
-                    <div class="group relative overflow-hidden bg-white/95 backdrop-blur rounded-3xl p-6 shadow-xl border border-white/50">
-
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-red-100 rounded-full blur-3xl opacity-40"></div>
-
-                        <div class="relative z-10 flex items-center justify-between">
-
-                            <div>
-                                <p class="text-sm font-semibold text-gray-500 mb-2">
-                                    Total Lokasi TEA
-                                </p>
-
-                                <h3 class="text-5xl font-black text-red-600">
-                                    {{ \App\Models\Lokasi::count() }}
-                                </h3>
-
-                                <p class="text-sm text-gray-400 mt-2">
-                                    Titik evakuasi aktif
-                                </p>
-                            </div>
-
-                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg">
-                                <i class="fas fa-house-circle-check text-white text-2xl"></i>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Total Desa -->
-                    <div class="group relative overflow-hidden bg-white/95 backdrop-blur rounded-3xl p-6 shadow-xl border border-white/50">
-
-                        <div class="absolute bottom-0 left-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-40"></div>
-
-                        <div class="relative z-10 flex items-center justify-between">
-
-                            <div>
-                                <p class="text-sm font-semibold text-gray-500 mb-2">
-                                    Total Desa
-                                </p>
-
-                                <h3 class="text-5xl font-black text-blue-600">
-                                    {{ \App\Models\Desa::count() }}
-                                </h3>
-
-                                <p class="text-sm text-gray-400 mt-2">
-                                    Wilayah terdata sistem
-                                </p>
-                            </div>
-
-                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shadow-lg">
-                                <i class="fas fa-map-location-dot text-white text-2xl"></i>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-        </div>
+    {{-- ===== Judul halaman ===== --}}
+    <div>
+        @auth
+            <p class="text-sm text-slate-500">Hi, {{ Auth::user()->name }} 👋</p>
+        @endauth
+        <h1 class="text-2xl font-black text-slate-900">Pantau &amp; Kelola Tempat Evakuasi Akhir</h1>
+        <p class="text-sm text-slate-500 mt-1">
+            Sistem monitoring dan pengelolaan TEA untuk membantu mitigasi bencana secara cepat, tepat, dan terintegrasi.
+        </p>
     </div>
 
-    <!-- INFORMASI SISTEM -->
-    <div class="mt-10 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-10">
-
-        <!-- Header -->
-        <div class="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-red-50 to-white">
-
-            <div class="flex items-center gap-4">
-
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg">
-                    <i class="fas fa-circle-info text-white text-2xl"></i>
-                </div>
-
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        Informasi Sistem TEA
-                    </h2>
-
-                    <p class="text-gray-500 mt-1">
-                        Fitur utama yang tersedia pada sistem monitoring TEA.
-                    </p>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Content -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-8">
-
-            <!-- Card -->
-            <div class="group p-6 rounded-3xl border border-gray-100 hover:border-red-200 hover:shadow-xl transition">
-
-                <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-5">
-                    <i class="fas fa-map-marked-alt text-2xl"></i>
-                </div>
-
-                <h3 class="text-lg font-bold text-gray-800 mb-2">
-                    Monitoring Lokasi
-                </h3>
-
-                <p class="text-sm text-gray-500 leading-relaxed">
-                    Menampilkan persebaran lokasi Tempat Evakuasi Akhir secara realtime melalui peta interaktif.
-                </p>
-
-            </div>
-
-            <!-- Card -->
-            <div class="group p-6 rounded-3xl border border-gray-100 hover:border-blue-200 hover:shadow-xl transition">
-
-                <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-5">
-                    <i class="fas fa-users text-2xl"></i>
-                </div>
-
-                <h3 class="text-lg font-bold text-gray-800 mb-2">
-                    Data Pengungsi
-                </h3>
-
-                <p class="text-sm text-gray-500 leading-relaxed">
-                    Mengelola data pengungsi dan kebutuhan lapangan dalam proses evakuasi.
-                </p>
-
-            </div>
-
-            <!-- Card -->
-            <div class="group p-6 rounded-3xl border border-gray-100 hover:border-green-200 hover:shadow-xl transition">
-
-                <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center mb-5">
-                    <i class="fas fa-boxes-stacked text-2xl"></i>
-                </div>
-
-                <h3 class="text-lg font-bold text-gray-800 mb-2">
-                    Manajemen Logistik
-                </h3>
-
-                <p class="text-sm text-gray-500 leading-relaxed">
-                    Memantau kebutuhan logistik seperti makanan, obat-obatan, dan perlengkapan pengungsi.
-                </p>
-
-            </div>
-
-            <!-- Card -->
-            <div class="group p-6 rounded-3xl border border-gray-100 hover:border-purple-200 hover:shadow-xl transition">
-
-                <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-5">
-                    <i class="fas fa-chart-line text-2xl"></i>
-                </div>
-
-                <h3 class="text-lg font-bold text-gray-800 mb-2">
-                    Statistik & Laporan
-                </h3>
-
-                <p class="text-sm text-gray-500 leading-relaxed">
-                    Menyediakan visualisasi data dan laporan kondisi lokasi evakuasi secara cepat dan akurat.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- MAP -->
-    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-
-        <!-- Header -->
-        <div class="p-6 border-b border-gray-100">
-
+    {{-- ===== Statistik ===== --}}
+    <section id="statistik" class="grid grid-cols-1 sm:grid-cols-3 gap-4 scroll-mt-24">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between">
             <div>
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-map text-red-500 mr-3"></i>
-                    Peta Persebaran TEA
-                </h2>
-
-                <p class="text-gray-500 mt-1">
-                    Menampilkan
-                    <span class="font-semibold text-red-600">
-                        {{ \App\Models\Lokasi::count() }}
-                    </span>
-                    Tempat Evakuasi Akhir (TEA) terdaftar
-                </p>
+                <p class="text-sm font-semibold text-slate-500">Total Lokasi TEA</p>
+                <p class="text-3xl font-black text-red-600 mt-1">{{ $totalTea }}</p>
+                <p class="text-xs text-slate-400 mt-1">Titik evakuasi aktif</p>
             </div>
-
+            <div class="w-12 h-12 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl">
+                <i class="fas fa-house-circle-check"></i>
+            </div>
         </div>
 
-        <!-- MAP -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-semibold text-slate-500">Total Desa</p>
+                <p class="text-3xl font-black text-blue-600 mt-1">{{ $totalDesa }}</p>
+                <p class="text-xs text-slate-400 mt-1">Wilayah terdata sistem</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl">
+                <i class="fas fa-map-location-dot"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-semibold text-slate-500">Total Kapasitas</p>
+                <p class="text-3xl font-black text-green-600 mt-1">{{ number_format($totalKapasitas, 0, ',', '.') }}</p>
+                <p class="text-xs text-slate-400 mt-1">Orang dapat ditampung</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-green-600 text-white flex items-center justify-center text-xl">
+                <i class="fas fa-people-roof"></i>
+            </div>
+        </div>
+    </section>
+
+    {{-- ===== Peta ===== --}}
+    <section class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-map text-red-500"></i> Peta Persebaran TEA
+            </h2>
+            <p class="text-sm text-slate-500">
+                Menampilkan <span class="font-semibold text-red-600">{{ $totalTea }}</span>
+                Tempat Evakuasi Akhir (TEA) terdaftar
+            </p>
+        </div>
         <div class="p-4">
-            <div id="map"
-                 class="h-[550px] w-full rounded-2xl border border-gray-200 shadow-inner">
-            </div>
+            <div id="map" class="h-[460px] md:h-[560px] w-full rounded-xl border border-slate-200"></div>
         </div>
+    </section>
 
-    </div>
-<!-- Footer -->
-<footer class="mt-10 px-4">
-    <div class="rounded-[32px] overflow-hidden bg-[linear-gradient(135deg,#6b7280_0%,#334155_50%,#020617_100%)] text-white shadow-xl">
-
-        <!-- About Us Button -->
-        <div class="text-center py-6 border-b border-white/10">
-            <button
-                onclick="toggleAboutUs()"
-                class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm font-semibold transition">
-
-                <i class="fas fa-circle-info"></i>
-                About Us
-
-                <i id="arrowIcon"
-                   class="fas fa-chevron-down transition-transform duration-300"></i>
+    {{-- ===== About Us ===== --}}
+    <footer class="bg-slate-900 text-white rounded-2xl overflow-hidden" x-data="{ about: false }">
+        <div class="text-center py-4 border-b border-white/10">
+            <button @click="about = !about"
+                    class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-sm font-semibold transition">
+                <i class="fas fa-circle-info"></i> About Us
+                <i class="fas fa-chevron-down transition-transform" :class="{ 'rotate-180': about }"></i>
             </button>
         </div>
 
-        <!-- About Content -->
-        <div id="aboutUsContent" class="hidden">
+        <div x-show="about" x-cloak x-transition class="max-w-5xl mx-auto p-6 md:p-8">
+            <div class="text-center mb-8">
+                <h3 class="text-2xl font-bold mb-3">Tentang Sistem</h3>
+                <p class="text-slate-300 max-w-3xl mx-auto">
+                    GMLS Logeva merupakan platform yang dirancang untuk membantu pengelolaan Tempat Evakuasi Akhir (TEA),
+                    pemantauan ketersediaan logistik, serta penyajian informasi mitigasi bencana secara terintegrasi,
+                    cepat, dan akurat.
+                </p>
+            </div>
 
-            <div class="max-w-5xl mx-auto p-8">
-
-                <!-- Tentang Sistem -->
-                <div class="text-center mb-10">
-                    <h3 class="text-3xl font-bold mb-4">
-                        Tentang Sistem
-                    </h3>
-
-                    <p class="text-slate-300 leading-relaxed max-w-3xl mx-auto">
-                        GMLS Logeva merupakan platform
-                        yang dirancang untuk membantu pengelolaan Tempat Evakuasi Akhir (TEA),
-                        pemantauan ketersediaan logistik, serta penyajian informasi mitigasi
-                        bencana secara terintegrasi, cepat, dan akurat.
-                    </p>
-                </div>
-
-                <!-- Tim Pengembang -->
-                <div class="mb-10">
-                    <h4 class="text-2xl font-bold text-center mb-6">
-                        Tim Pengembang Website
-                    </h4>
-
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-
-    <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/anis.jpeg') }}"
-             alt="Anis"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-            Anis Faisal Reza
-        </h5>
-    </div>
-
-    <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/zedro.jpeg') }}"
-             alt="Zedro"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-            Zedro Deniro Mason
-        </h5>
-    </div>
-
-    <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/prajna.jpeg') }}"
-             alt="Prajna"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-            Prajna Ananda Citra
-        </h5>
-    </div>
-
-            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/melati.jpeg') }}"
-             alt="melati"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-                            <h5 class="font-semibold">Melati Octaviana Purba</h5>
-                        </div>
-
-                        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/melisa.jpeg') }}"
-             alt="melisa"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-                            <h5 class="font-semibold">Melisa Ashley</h5>
-                        </div>
-
-                        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-center">
-        <img src="{{ asset('assets/team/farrel.jpeg') }}"
-             alt="farrel"
-             class="w-24 h-24 mx-auto mb-4 rounded-full object-cover border-4 border-white/20 shadow-lg">
-        <h5 class="font-semibold text-white text-sm">
-                            <h5 class="font-semibold">Farrel Safwan</h5>
-                        </div>
+            <h4 class="text-xl font-bold text-center mb-5">Tim Pengembang Website</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                @foreach ($tim as [$foto, $nama])
+                    <div class="bg-white/10 rounded-2xl p-4 text-center">
+                        <img src="{{ asset('assets/team/' . $foto) }}" alt="{{ $nama }}"
+                             class="w-20 h-20 mx-auto mb-3 rounded-full object-cover border-4 border-white/20">
+                        <h5 class="font-semibold text-sm">{{ $nama }}</h5>
                     </div>
-                </div>
+                @endforeach
             </div>
         </div>
 
-        <!-- Copyright -->
-        <div class="border-t border-white/10 py-5 text-center">
-            <p class="text-sm text-slate-300">
-                © 2025 GMLS. All Rights Reserved.
-            </p>
-        </div>
+        <p class="border-t border-white/10 py-4 text-center text-sm text-slate-400">
+            © {{ date('Y') }} GMLS. All Rights Reserved.
+        </p>
+    </footer>
 
-    </div>
-</footer>
-
-<script>
-function toggleAboutUs() {
-    const content = document.getElementById('aboutUsContent');
-    const arrow = document.getElementById('arrowIcon');
-
-    content.classList.toggle('hidden');
-    arrow.classList.toggle('rotate-180');
-}
-</script>
 </div>
 @endsection
 
 @section('scripts')
-
-<!-- LEAFLET -->
-<link rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    // INIT MAP
-    const map = L.map('map').setView([-2.5489, 118.0149], 5);
+    const lokasiData = @json($semuaLokasi);
+    const detailBase = @json(url('lokasi'));   // otomatis ikut /logeva di hosting
 
-    // TILE
+    const map = L.map('map').setView([-6.93, 106.12], 11);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 18
     }).addTo(map);
 
-    // DATA LOKASI
-    const lokasiData = {!! json_encode(
-        \App\Models\Lokasi::select(
-            'id',
-            'nama_lokasi',
-            'alamat_lokasi',
-            'latitude',
-            'longitude',
-            'kapasitas_pengungsi'
-        )->get()
-    ) !!};
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-    const markers = [];
-
-    // ICON TEA
     const teaIcon = L.divIcon({
         className: '',
         html: `
             <div class="relative flex items-center justify-center">
-
                 <div class="absolute w-10 h-10 bg-red-500 rounded-full opacity-20 animate-pulse"></div>
-
                 <div class="w-5 h-5 bg-red-600 border-2 border-white rounded-full shadow-lg z-10"></div>
-
-            </div>
-        `,
+            </div>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10]
     });
 
-    // LOOP MARKER
+    const markers = [];
+
     lokasiData.forEach(lokasi => {
+        const lat = parseFloat(lokasi.latitude);
+        const lng = parseFloat(lokasi.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
 
-        if (lokasi.latitude && lokasi.longitude) {
+        const marker = L.marker([lat, lng], { icon: teaIcon }).addTo(map);
 
-            const marker = L.marker(
-                [
-                    parseFloat(lokasi.latitude),
-                    parseFloat(lokasi.longitude)
-                ],
-                {
-                    icon: teaIcon
-                }
-            ).addTo(map);
-
-            // POPUP
-            marker.bindPopup(`
-                <div class="w-56">
-
-                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-700 text-[11px] font-bold mb-2">
-                        Tempat Evakuasi Akhir
-                    </div>
-
-                    <h3 class="font-bold text-gray-800 text-base">
-                        ${lokasi.nama_lokasi}
-                    </h3>
-
-                    <p class="text-sm text-gray-600 mt-1">
-                        ${lokasi.alamat_lokasi}
-                    </p>
-
-                    <div class="mt-3 text-sm text-gray-700">
-                        Kapasitas:
-                        ${lokasi.kapasitas_pengungsi} orang
-                    </div>
-
-                    <a href="/logeva/lokasi/${lokasi.id}"
-                       class="inline-block mt-3 text-red-600 font-semibold text-sm">
-
-                       Lihat Detail →
-
-                    </a>
-
+        marker.bindPopup(`
+            <div class="w-56">
+                <div class="inline-flex px-2 py-1 rounded-full bg-red-100 text-red-700 text-[11px] font-bold mb-2">
+                    Tempat Evakuasi Akhir
                 </div>
-            `);
+                <h3 class="font-bold text-gray-800 text-base">${esc(lokasi.nama_lokasi)}</h3>
+                <p class="text-sm text-gray-600 mt-1">${esc(lokasi.alamat_lokasi)}</p>
+                <div class="mt-3 text-sm text-gray-700">Kapasitas: ${esc(lokasi.kapasitas_pengungsi)} orang</div>
+                <a href="${detailBase}/${lokasi.id}" class="inline-block mt-3 text-red-600 font-semibold text-sm">
+                    Lihat Detail →
+                </a>
+            </div>
+        `);
 
-            markers.push([
-                parseFloat(lokasi.latitude),
-                parseFloat(lokasi.longitude)
-            ]);
-        }
+        markers.push({ nama: String(lokasi.nama_lokasi ?? '').toLowerCase(), marker });
     });
 
-    // FIT BOUNDS
-    if (markers.length > 0) {
-
-        map.fitBounds(markers, {
-            padding: [50, 50]
-        });
-
+    if (markers.length) {
+        map.fitBounds(L.featureGroup(markers.map(m => m.marker)).getBounds(), { padding: [50, 50] });
     }
 
+    setTimeout(() => map.invalidateSize(), 300);
+
+    // Pencarian dari kotak "Cari lokasi" di topbar (tekan Enter)
+    window.addEventListener('tea-search', (e) => {
+        const q = String(e.detail || '').trim().toLowerCase();
+        if (!q) return;
+        const hit = markers.find(m => m.nama.includes(q));
+        if (hit) {
+            map.flyTo(hit.marker.getLatLng(), 16);
+            hit.marker.openPopup();
+        } else {
+            alert('Lokasi "' + e.detail + '" tidak ditemukan');
+        }
+    });
 });
 </script>
-
 @endsection
