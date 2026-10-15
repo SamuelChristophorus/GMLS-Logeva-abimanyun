@@ -10,6 +10,14 @@
         'rejected' => ['label' => 'Ditolak',   'pill' => 'bg-red-100 text-red-700 ring-red-200',             'dot' => 'bg-red-400',     'icon_color' => 'text-red-500',     'tl_bg' => 'bg-red-50',     'tl_ring' => 'ring-red-200'],
         'done'     => ['label' => 'Selesai',   'pill' => 'bg-blue-100 text-blue-700 ring-blue-200',          'dot' => 'bg-blue-400',    'icon_color' => 'text-blue-500',    'tl_bg' => 'bg-blue-50',    'tl_ring' => 'ring-blue-200'],
     ];
+    $beroperasi = $lokasi->isBeroperasi();
+    $adaSphere  = (bool) $lokasi->sphereLokasi;
+    $opsBadge   = $lokasi->labelOperasional();
+    $opsPill    = [
+        'green' => 'bg-green-100 text-green-700',
+        'amber' => 'bg-amber-100 text-amber-700',
+        'slate' => 'bg-slate-200 text-slate-700',
+    ][$opsBadge['warna']];
     $cfg = $statusConfig[$currentStatus] ?? ['label' => ucfirst($currentStatus), 'pill' => 'bg-gray-100 text-gray-700 ring-gray-200', 'dot' => 'bg-gray-400', 'icon_color' => 'text-gray-400', 'tl_bg' => 'bg-gray-50', 'tl_ring' => 'ring-gray-200'];
 @endphp
 
@@ -20,10 +28,8 @@
 @section('content')
 
 {{-- ════════════════════════════════ HERO ════════════════════════════════ --}}
-<div class="relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
 <div class="relative bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-3xl overflow-hidden shadow-xl">
 
-```
 <div class="grid lg:grid-cols-5">
 
     {{-- INFORMASI --}}
@@ -47,6 +53,13 @@
 
                     {{ $cfg['label'] }}
 
+                </span>
+
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium {{ $opsPill }}">
+                    @if ($beroperasi)
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    @endif
+                    {{ $opsBadge['label'] }}
                 </span>
 
             </div>
@@ -155,7 +168,8 @@
 
 
 
-{{-- ════════════════════════════════ STATS BAR ════════════════════════════════ --}}
+{{-- ════════════════════════════════ STATS BAR (hanya saat siaga) ════════════════════════════════ --}}
+@if (! $beroperasi && $adaSphere)
 <div class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
     <div class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
         @php
@@ -176,12 +190,18 @@
         @endforeach
     </div>
 </div>
+@endif
 
 {{-- ════════════════════════════════ BODY ════════════════════════════════ --}}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
 
+    {{-- ── Status Operasional Posko (tombol + dashboard saat beroperasi) ── --}}
+    <div>
+        @include('includes.operasional-lokasi', ['lokasi' => $lokasi, 'operasional' => $operasional ?? null])
+    </div>
+
     {{-- ── Row 1: Map + Sphere ── --}}
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 {{ ($beroperasi || ! $adaSphere) ? '' : 'xl:grid-cols-2' }} gap-8">
 
         {{-- MAP --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -201,7 +221,8 @@
             </div>
         </div>
 
-        {{-- SPHERE --}}
+        {{-- SPHERE (hanya saat siaga) --}}
+        @if (! $beroperasi && $adaSphere)
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
                 <div class="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
@@ -279,9 +300,11 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
-    {{-- ── Row 2: Nutrition Conversion ── --}}
+    {{-- ── Row 2: Nutrition Conversion (hanya saat siaga) ── --}}
+    @if (! $beroperasi && $adaSphere)
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
             <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
@@ -392,6 +415,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- ── Row 3: Status History ── --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

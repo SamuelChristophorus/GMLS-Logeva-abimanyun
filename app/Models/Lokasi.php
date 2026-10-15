@@ -9,6 +9,11 @@ class Lokasi extends Model
 {
     use SoftDeletes;
 
+    // Nilai status operasional
+    public const OPS_SIAGA      = 'siaga';
+    public const OPS_BEROPERASI = 'beroperasi';
+    public const OPS_SELESAI    = 'selesai';
+
     protected $fillable = [
         'desa_id',
         'relawan_id',
@@ -18,32 +23,49 @@ class Lokasi extends Model
         'kapasitas_pengungsi',
         'gambar_lokasi',
         'latitude',
-        'longitude'
+        'longitude',
+        // --- baru: status operasional ---
+        'status_operasional',
+        'mulai_beroperasi_at',
+        'selesai_beroperasi_at',
     ];
 
-    public function relawan(){
+    protected $casts = [
+        'mulai_beroperasi_at'   => 'datetime',
+        'selesai_beroperasi_at' => 'datetime',
+    ];
+
+    /* =========================================================
+     |  RELASI (tidak diubah)
+     ========================================================= */
+
+    public function relawan()
+    {
         return $this->belongsTo(Relawan::class);
     }
 
-
-    public function desa(){
+    public function desa()
+    {
         return $this->belongsTo(Desa::class);
     }
 
-    public function statusLokasi(){
+    public function statusLokasi()
+    {
         return $this->hasMany(StatusLokasi::class);
     }
 
-    public function sphereLokasi(){
+    public function sphereLokasi()
+    {
         return $this->hasOne(SphereLokasi::class);
     }
 
     public function stokLogistik()
-{
-    return $this->hasMany(StokLogistik::class);
-}
+    {
+        return $this->hasMany(StokLogistik::class);
+    }
 
-    public function riwayatPengungsi(){
+    public function riwayatPengungsi()
+    {
         return $this->hasMany(RiwayatPengungsi::class);
     }
 
@@ -52,7 +74,6 @@ class Lokasi extends Model
         return $this->hasMany(Pengungsi::class);
     }
 
-    
     public function latestStatus()
     {
         return $this->hasOne(StatusLokasi::class)
@@ -61,10 +82,59 @@ class Lokasi extends Model
 
     public function latestStatusView()
     {
-        
         return $this->hasOne(StatusLokasi::class)->latestOfMany();
     }
 
-    
+    /* =========================================================
+     |  BARU: STATUS OPERASIONAL
+     ========================================================= */
 
+    /** Lokasi sudah disetujui admin (status persetujuan terakhir = approved). */
+    public function isApproved(): bool
+    {
+        return optional($this->latestStatusView)->status === 'approved';
+    }
+
+    /** Posko sedang aktif menampung pengungsi. */
+    public function isBeroperasi(): bool
+    {
+        return $this->status_operasional === self::OPS_BEROPERASI;
+    }
+
+    /** Lama posko beroperasi dalam hari (hari pertama = 1). */
+    public function hariOperasi(): ?int
+    {
+        if (! $this->isBeroperasi() || ! $this->mulai_beroperasi_at) {
+            return null;
+        }
+
+        return (int) $this->mulai_beroperasi_at->copy()->startOfDay()->diffInDays(now()->startOfDay()) + 1;
+    }
+
+    /**
+     * Apakah user boleh mengubah status operasional posko ini:
+     * admin, atau relawan penanggung jawab posko ini.
+     */
+    public function bisaDikelolaOleh($user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+            return true;
+        }
+
+        return $this->relawan && (int) $this->relawan->user_id === (int) $user->id;
+    }
+
+    /** Label & warna untuk ditampilkan di tampilan. */
+    public function labelOperasional(): array
+    {
+        return match ($this->status_operasional) {
+            self::OPS_BEROPERASI => ['label' => 'Beroperasi', 'warna' => 'green'],
+            self::OPS_SELESAI    => ['label' => 'Selesai',    'warna' => 'slate'],
+            default              => ['label' => 'Siaga',      'warna' => 'amber'],
+        };
+    }
 }

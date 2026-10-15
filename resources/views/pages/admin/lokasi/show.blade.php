@@ -35,11 +35,16 @@
         </div>
     </div>
 
+    <!-- Status Operasional Posko (tombol Mulai/Tutup + dashboard saat beroperasi) -->
+    <div>
+        @include('includes.operasional-lokasi', ['lokasi' => $lokasi, 'operasional' => $operasional ?? null])
+    </div>
+
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         <!-- Left/Main Column -->
-        <div class="xl:col-span-2 flex flex-col gap-6">
+        <div class="{{ $lokasi->isBeroperasi() ? 'xl:col-span-3' : 'xl:col-span-2' }} flex flex-col gap-6">
             
             <!-- Media & Map -->
             <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
@@ -137,7 +142,12 @@
                                 <td class="py-4 px-4 text-sm font-bold text-slate-600 whitespace-nowrap">{{ $status->created_at->format('d M Y, H:i') }}</td>
                                 <td class="py-4 px-4">
                                     @php
-                                        $badgeBg = 'bg-slate-100 text-slate-600';
+                                        $badgeBg = match ($status->status) {
+                                            'approved' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                            'pending'  => 'bg-amber-100 text-amber-700 border-amber-200',
+                                            'rejected' => 'bg-rose-100 text-rose-700 border-rose-200',
+                                            default    => 'bg-slate-100 text-slate-600',
+                                        };
                                         if(stripos($status->status, 'aman') !== false || stripos($status->status, 'dibuka') !== false) $badgeBg = 'bg-emerald-100 text-emerald-700 border-emerald-200';
                                         elseif(stripos($status->status, 'penuh') !== false || stripos($status->status, 'waspada') !== false) $badgeBg = 'bg-amber-100 text-amber-700 border-amber-200';
                                         elseif(stripos($status->status, 'tutup') !== false || stripos($status->status, 'bahaya') !== false) $badgeBg = 'bg-rose-100 text-rose-700 border-rose-200';
@@ -176,7 +186,8 @@
             
         </div>
 
-        <!-- Right Column: Sphere & Nutrition -->
+        <!-- Right Column: Sphere & Nutrition (hanya saat SIAGA / belum beroperasi) -->
+        @if (! $lokasi->isBeroperasi() && $lokasi->sphereLokasi)
         <div class="flex flex-col gap-6">
             
             <!-- Standard Sphere Card -->
@@ -289,6 +300,7 @@
             </div>
             
         </div>
+        @endif
     </div>
 </div>
 @endsection
@@ -302,10 +314,9 @@
             scrollWheelZoom: false
         }).setView([{{$lokasi->latitude}}, {{$lokasi->longitude}}], 14);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
         }).addTo(map);
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
