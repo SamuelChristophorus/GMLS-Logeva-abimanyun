@@ -25,7 +25,7 @@ use App\Http\Controllers\StokMasukController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [HomeController::class,'index'])->name('home'); 
+Route::get('/', [HomeController::class,'index'])->name('home');
 
 Route::get('/lokasis', [UserLokasiController::class,'index'])->name('lokasi.index');
 Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.show');
@@ -39,6 +39,9 @@ Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.s
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+
+    Route::patch('/lokasi/{lokasi}/operasional', [\App\Http\Controllers\OperasionalLokasiController::class, 'update'])
+        ->name('lokasi.operasional');
 
     Route::get('/create-lokasi', [UserLokasiController::class,'create'])->name('lokasi.create');
     Route::post('/create-lokasi', [UserLokasiController::class,'store'])->name('lokasi.store');
@@ -55,14 +58,19 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::get('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'index'])->name('pengungsi.index');
-Route::post('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'store'])->name('pengungsi.store');
-Route::post('/pengungsi/import/{lokasi}',[PengungsiController::class, 'import'])->name('pengungsi.import');
-Route::get('/pengungsi/export/{lokasi}',[PengungsiController::class, 'export'])->name('pengungsi.export');
-Route::get('/pengungsi/{pengungsi}',[PengungsiController::class, 'show'])->name('pengungsi.show');
-Route::get('/pengungsi/{pengungsi}/edit',[PengungsiController::class, 'edit'])->name('pengungsi.edit');
-Route::put('/pengungsi/{pengungsi}',[PengungsiController::class, 'update'])->name('pengungsi.update');
-Route::delete('/pengungsi/{pengungsi}',[PengungsiController::class, 'destroy'])->name('pengungsi.destroy');
+// Hanya user yang sudah login (pengunjung publik diarahkan ke halaman login)
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'index'])->name('pengungsi.index');
+    Route::post('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'store'])->name('pengungsi.store');
+    Route::post('/pengungsi/import/{lokasi}',[PengungsiController::class, 'import'])->name('pengungsi.import');
+    Route::get('/pengungsi/export/{lokasi}',[PengungsiController::class, 'export'])->name('pengungsi.export');
+    Route::get('/pengungsi/{pengungsi}',[PengungsiController::class, 'show'])->name('pengungsi.show');
+    Route::get('/pengungsi/{pengungsi}/edit',[PengungsiController::class, 'edit'])->name('pengungsi.edit');
+    Route::put('/pengungsi/{pengungsi}',[PengungsiController::class, 'update'])->name('pengungsi.update');
+    Route::delete('/pengungsi/{pengungsi}',[PengungsiController::class, 'destroy'])->name('pengungsi.destroy');
+
+});
 
 /*
 |--------------------------------------------------------------------------

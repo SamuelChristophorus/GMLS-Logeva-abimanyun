@@ -12,6 +12,7 @@ use App\Interfaces\SphereLokasiRepositoryInterface;
 use RealRashid\SweetAlert\Facades\Alert as Swal;
 use App\Exports\LokasiExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Services\OperasionalLokasiService;
 
 class LokasiController extends Controller
 {
@@ -89,12 +90,17 @@ class LokasiController extends Controller
         return redirect()->route('admin.lokasi.index');
     }
 
-    public function show(string $id)
+    public function show(string $id, OperasionalLokasiService $operasionalService)
     {
         $lokasi = $this->lokasiRepository->getLokasiById((int) $id);
         $sphere = $this->sphereLokasiRepository->getSphereLokasiByLokasiId((int) $id);
 
-        return view('pages.admin.lokasi.show', compact('lokasi', 'sphere'));
+        // Data dashboard operasional (hanya dihitung jika posko sedang beroperasi)
+        $operasional = $lokasi->isBeroperasi()
+            ? $operasionalService->ringkasan($lokasi)
+            : null;
+
+        return view('pages.admin.lokasi.show', compact('lokasi', 'sphere', 'operasional'));
     }
 
     public function edit(string $id)
