@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\Upload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRelawanRequest;
 use App\Http\Requests\UpdateRelawanRequest;
@@ -28,23 +29,18 @@ class RelawanController extends Controller
         return view('pages.admin.relawan.create');
     }
 
+    /** Foto default jika admin tidak mengupload foto (sama dengan relawan hasil import) */
+    public const AVATAR_DEFAULT = 'assets/default/avatar.png';
+
     public function store(StoreRelawanRequest $request)
     {
         $data = $request->validated();
 
         if ($request->hasFile('avatar')) {
-            $file = $request->file('avatar');
-            $filename = time().'_'.$file->getClientOriginalName();
-
-            $destinationPath = base_path('../logeva/storage/assets/avatar');
-
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $filename);
-
-            $data['avatar'] = 'assets/avatar/'.$filename;
+            // Disimpan ke <folder public>/storage/assets/avatar (otomatis benar di localhost & Hostinger)
+            $data['avatar'] = Upload::simpan($request->file('avatar'), 'assets/avatar');
+        } else {
+            $data['avatar'] = self::AVATAR_DEFAULT;
         }
 
         $relawan = $this->relawanRepository->createRelawan($data);
@@ -77,18 +73,8 @@ class RelawanController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('avatar')) {
-            $file = $request->file('avatar');
-            $filename = time().'_'.$file->getClientOriginalName();
-
-            $destinationPath = base_path('../logeva/storage/assets/avatar');
-
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $filename);
-
-            $data['avatar'] = 'assets/avatar/'.$filename;
+            // Disimpan ke <folder public>/storage/assets/avatar (otomatis benar di localhost & Hostinger)
+            $data['avatar'] = Upload::simpan($request->file('avatar'), 'assets/avatar');
         }
 
         $this->relawanRepository->updateRelawan($id, $data);

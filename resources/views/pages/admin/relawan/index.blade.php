@@ -19,7 +19,16 @@
             </p>
         </div>
 
-        <div>
+        <div class="flex flex-wrap items-center gap-3">
+            @include('includes.admin-import-export', [
+                'judul'         => 'Data Relawan',
+                'keterangan'    => 'Email yang sudah terdaftar hanya diperbarui namanya.',
+                'templateRoute' => route('admin.relawan.import.template'),
+                'previewRoute'  => route('admin.relawan.import.preview'),
+                'exportRoute'   => route('admin.relawan.export'),
+                'templateFile'  => 'template_import_relawan.xlsx',
+            ])
+
             <a href="{{ route('admin.relawan.create') }}" class="inline-flex items-center justify-center gap-2 bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-blue-500/30 transform transition-transform duration-300 hover:scale-[1.02] border border-blue-400/20">
                 <i class="fas fa-user-plus text-sm"></i> Tambah Relawan
             </a>

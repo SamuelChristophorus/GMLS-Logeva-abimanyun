@@ -28,6 +28,16 @@
             <a href="{{ route('admin.lokasi.export') }}" class="inline-flex items-center justify-center gap-2 bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl shadow-lg shadow-emerald-500/30 transform transition-transform duration-300 hover:scale-[1.02] border border-emerald-400/20">
                 <i class="fas fa-file-excel text-sm"></i> Export Excel
             </a>
+
+            <!-- Import Button (export lokasi sudah ada di atas, jadi exportRoute = null) -->
+            @include('includes.admin-import-export', [
+                'judul'         => 'Lokasi Pengungsian',
+                'keterangan'    => 'Lokasi dengan nama & desa yang sama akan diperbarui, bukan dibuat ganda.',
+                'templateRoute' => route('admin.lokasi.import.template'),
+                'previewRoute'  => route('admin.lokasi.import.preview'),
+                'exportRoute'   => null,
+                'templateFile'  => 'template_import_lokasi.xlsx',
+            ])
         </div>
     </div>
 

@@ -51,14 +51,14 @@
                     </div>
                     
                     <div class="flex-1 space-y-2">
-                        <label for="avatar" class="block text-sm font-bold text-slate-700">Foto Profil Resmi <span class="text-rose-500">*</span></label>
+                        <label for="avatar" class="block text-sm font-bold text-slate-700">Foto Profil Resmi <span class="text-xs font-semibold text-slate-400">(opsional)</span></label>
                         <input type="file" id="avatar" name="avatar" accept="image/*" class="block w-full text-sm text-slate-500
                             file:mr-4 file:py-2.5 file:px-4
                             file:rounded-full file:border-0
                             file:text-xs file:font-bold file:uppercase file:tracking-wider
                             file:bg-emerald-50 file:text-emerald-700
                             hover:file:bg-emerald-100 transition-all cursor-pointer @error('avatar') border-rose-500 @enderror" onchange="previewImage(this)">
-                        <p class="text-xs text-slate-500">Format PNG, JPG, JPEG (Maks. 2MB). Wajib diisi.</p>
+                        <p class="text-xs text-slate-500">Format PNG, JPG, JPEG (Maks. 2MB). Jika dikosongkan, memakai foto default dan dapat diganti nanti lewat Edit.</p>
                         @error('avatar')
                             <p class="mt-1.5 text-xs font-bold text-rose-500 flex items-center gap-1">
                                 <i class="fas fa-exclamation-circle"></i> {{ $message }}

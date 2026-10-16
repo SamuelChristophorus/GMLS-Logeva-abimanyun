@@ -8,6 +8,10 @@ use App\Http\Controllers\Admin\LokasiController;
 use App\Http\Controllers\Admin\RelawanController;
 use App\Http\Controllers\Admin\StatusLokasiController;
 use App\Http\Controllers\Admin\AdminLogistikController;
+use App\Http\Controllers\Admin\DesaImportController;
+use App\Http\Controllers\Admin\Import\LogistikImportController;
+use App\Http\Controllers\Admin\Import\RelawanImportController;
+use App\Http\Controllers\Admin\Import\LokasiImportController;
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -122,6 +126,55 @@ Route::prefix('admin')
 
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORT / EXPORT DESA
+        | (harus di atas Route::resource('desa') agar tidak tertangkap route show)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/desa/export', [DesaImportController::class, 'export'])
+            ->name('desa.export');
+        Route::get('/desa/import/template', [DesaImportController::class, 'template'])
+            ->name('desa.import.template');
+        Route::post('/desa/import/preview', [DesaImportController::class, 'preview'])
+            ->name('desa.import.preview');
+        Route::post('/desa/import/confirm', [DesaImportController::class, 'confirm'])
+            ->name('desa.import.confirm');
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORT / EXPORT LOGISTIK, RELAWAN, LOKASI
+        | (harus di atas Route::resource agar tidak tertangkap route show)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/logistik/export', [LogistikImportController::class, 'export'])
+            ->name('logistik.export');
+        Route::get('/logistik/import/template', [LogistikImportController::class, 'template'])
+            ->name('logistik.import.template');
+        Route::post('/logistik/import/preview', [LogistikImportController::class, 'preview'])
+            ->name('logistik.import.preview');
+        Route::post('/logistik/import/confirm', [LogistikImportController::class, 'confirm'])
+            ->name('logistik.import.confirm');
+
+        Route::get('/relawan/export', [RelawanImportController::class, 'export'])
+            ->name('relawan.export');
+        Route::get('/relawan/import/template', [RelawanImportController::class, 'template'])
+            ->name('relawan.import.template');
+        Route::post('/relawan/import/preview', [RelawanImportController::class, 'preview'])
+            ->name('relawan.import.preview');
+        Route::post('/relawan/import/confirm', [RelawanImportController::class, 'confirm'])
+            ->name('relawan.import.confirm');
+
+        // Export lokasi sudah ada (admin.lokasi.export)
+        Route::get('/lokasi/import/template', [LokasiImportController::class, 'template'])
+            ->name('lokasi.import.template');
+        Route::post('/lokasi/import/preview', [LokasiImportController::class, 'preview'])
+            ->name('lokasi.import.preview');
+        Route::post('/lokasi/import/confirm', [LokasiImportController::class, 'confirm'])
+            ->name('lokasi.import.confirm');
 
         /*
         |--------------------------------------------------------------------------

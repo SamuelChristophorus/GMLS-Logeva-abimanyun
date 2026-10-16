@@ -6,7 +6,7 @@
 
 <div class="container mx-auto px-6 py-8">
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
 
         <div>
 
@@ -20,13 +20,26 @@
 
         </div>
 
-        <a href="{{ route('admin.logistik.create') }}"
-           class="px-5 py-3 bg-red-600 hover:bg-red-700
-           text-white rounded-xl font-semibold shadow">
+        <div class="flex flex-wrap items-center gap-3">
 
-            + Tambah Item
+            @include('includes.admin-import-export', [
+                'judul'         => 'Master Logistik',
+                'keterangan'    => 'Item dengan nama & kategori yang sama akan diperbarui, bukan dibuat ganda.',
+                'templateRoute' => route('admin.logistik.import.template'),
+                'previewRoute'  => route('admin.logistik.import.preview'),
+                'exportRoute'   => route('admin.logistik.export'),
+                'templateFile'  => 'template_import_logistik.xlsx',
+            ])
 
-        </a>
+            <a href="{{ route('admin.logistik.create') }}"
+               class="px-5 py-3 bg-red-600 hover:bg-red-700
+               text-white rounded-xl font-semibold shadow">
+
+                + Tambah Item
+
+            </a>
+
+        </div>
 
     </div>
 

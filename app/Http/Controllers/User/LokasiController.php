@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User;
 
+use App\Support\Upload;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLokasiRequest;
 use App\Interfaces\DesaRepositoryInterface;
@@ -76,19 +77,8 @@ class LokasiController extends Controller
         $data['relawan_id'] = auth()->user()->relawan->id;
 
         if ($request->hasFile('gambar_lokasi')) {
-            $file = $request->file('gambar_lokasi');
-
-            $filename = time().'_'.$file->getClientOriginalName();
-
-            $destinationPath = base_path('../logeva/storage/assets/lokasi/gambar');
-
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $filename);
-
-            $data['gambar_lokasi'] = 'assets/lokasi/gambar/'.$filename;
+            // Disimpan ke <folder public>/storage/assets/lokasi/gambar (otomatis benar di localhost & Hostinger)
+            $data['gambar_lokasi'] = Upload::simpan($request->file('gambar_lokasi'), 'assets/lokasi/gambar');
         }
 
         $lokasi = $this->lokasiRepository->createLokasi($data);
