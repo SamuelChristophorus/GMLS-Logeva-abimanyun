@@ -23,12 +23,9 @@
             <i class="fas fa-map-location-dot w-5 text-center"></i> Monitoring Lokasi
         </a>
 
-        <a href="{{ route('lokasi.index') }}" class="{{ $menu(request()->routeIs('lokasi.index', 'lokasi.show', 'pengungsi.*')) }}">
-            <i class="fas fa-users w-5 text-center"></i> Data Pengungsi
-        </a>
-
-        <a href="{{ route('lokasi.index') }}" class="{{ $menu(request()->routeIs('logistik.*')) }}">
-            <i class="fas fa-boxes-stacked w-5 text-center"></i> Manajemen Logistik
+        {{-- Gabungan "Data Pengungsi" + "Manajemen Logistik" --}}
+        <a href="{{ route('lokasi.index') }}" class="{{ $menu(request()->routeIs('lokasi.index', 'lokasi.show', 'pengungsi.*', 'logistik.*')) }}">
+            <i class="fas fa-campground w-5 text-center"></i> Manajemen Posko
         </a>
 
         <a href="{{ route('home') }}#statistik" class="{{ $menu(false) }}">

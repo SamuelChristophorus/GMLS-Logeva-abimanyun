@@ -10,13 +10,13 @@
 
     <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden p-8 sm:p-10 border border-white/50 relative">
         <div class="text-center mb-8">
-            <a href="{{ route('home') }}" class="inline-block">
-                <div class="mx-auto w-20 h-20 bg-gradient-to-tr from-blue-50 to-indigo-50 rounded-full flex items-center justify-center mb-4 shadow-inner border border-blue-100 hover:shadow-md transition-shadow duration-300">
-                    <img src="{{ asset('assets/logo/logogmls.png') }}" alt="GMLS Logo" class="h-14 w-14 object-contain transform hover:scale-110 transition-transform duration-300">
-                </div>
+            <a href="{{ route('home') }}" class="inline-block mb-5">
+                <img src="{{ asset('assets/logo/logo-logeva.png') }}"
+                     alt="Logo Logeva - Gugus Mitigasi Lebak Selatan"
+                     class="mx-auto w-full max-w-[260px] h-auto object-contain transform hover:scale-105 transition-transform duration-300">
             </a>
             <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">Daftar Akun Baru</h1>
-            <p class="text-gray-500 mt-1.5 text-sm">Bergabunglah untuk mulai menggunakan GMLS LOGEVA</p>
+            <p class="text-gray-500 mt-1.5 text-sm">Bergabunglah untuk mulai menggunakan Logeva</p>
         </div>
 
         <form action="{{ route('register.store') }}" method="POST" class="space-y-5" enctype="multipart/form-data">

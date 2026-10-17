@@ -1,13 +1,9 @@
 <div class="h-full flex flex-col bg-gray-300 backdrop-blur-xl border-r border-black-400 w-64 shadow-[4px_0_24px_rgba(239,68,68,0.15)] relative z-20">
     <!-- Brand -->
-    <a class="flex items-center px-6 py-6 border-b border-slate-100/50" href="{{route('admin.dashboard')}}">
-        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 overflow-hidden shrink-0">
-            <img src="{{ asset('assets/logo/logogmls.png') }}" alt="Logo" class="w-full h-full object-cover">
-        </div>
-        <div class="ml-3">
-            <h1 class="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">GMLS LOGEVA</h1>
-            <p class="text-[10px] font-bold text-slate-900 uppercase tracking-widest leading-none">Admin Panel</p>
-        </div>
+    <a class="flex flex-col items-start gap-2 px-6 py-5 border-b border-slate-100/50" href="{{route('admin.dashboard')}}">
+        <img src="{{ asset('assets/logo/logo-logeva.png') }}" alt="Logo Logeva - Gugus Mitigasi Lebak Selatan"
+             class="w-full max-w-[200px] h-auto object-contain">
+        <p class="text-[10px] font-bold text-slate-900 uppercase tracking-widest leading-none">Admin Panel</p>
     </a>
 
     <!-- Nav Links -->

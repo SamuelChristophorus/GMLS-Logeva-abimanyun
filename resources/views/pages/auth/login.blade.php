@@ -11,13 +11,13 @@
     <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden p-8 sm:p-10 border border-white/50 relative">
         <!-- Logo/Header Section -->
         <div class="text-center mb-8">
-            <a href="{{ route('home') }}" class="inline-block">
-                <div class="mx-auto w-24 h-24 bg-gradient-to-tr from-blue-50 to-blue-100 rounded-full flex items-center justify-center mb-5 shadow-inner border border-blue-50 hover:shadow-md transition-shadow duration-300">
-                    <img src="{{ asset('assets/logo/logogmls.png') }}" alt="GMLS Logo" class="h-16 w-16 object-contain transform hover:scale-110 transition-transform duration-300">
-                </div>
+            <a href="{{ route('home') }}" class="inline-block mb-6">
+                <img src="{{ asset('assets/logo/logo-logeva.png') }}"
+                     alt="Logo Logeva - Gugus Mitigasi Lebak Selatan"
+                     class="mx-auto w-full max-w-[280px] h-auto object-contain transform hover:scale-105 transition-transform duration-300">
             </a>
             <h2 class="text-3xl font-extrabold text-gray-800 tracking-tight">Selamat Datang</h2>
-            <p class="text-gray-500 mt-2 text-sm">Masuk ke GMLS LOGEVA untuk mengelola data</p>
+            <p class="text-gray-500 mt-2 text-sm">Masuk ke Logeva untuk mengelola data</p>
         </div>
 
         @if (session()->has('success'))

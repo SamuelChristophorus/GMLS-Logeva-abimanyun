@@ -1,6 +1,7 @@
 @php
     $user    = Auth::user();
-    $isAdmin = $user && (($user->role ?? null) === 'admin');
+    // Role memakai Spatie (sama seperti middleware role:admin di routes)
+    $isAdmin = $user && method_exists($user, 'hasRole') && $user->hasRole('admin');
 @endphp
 
 <header class="sticky top-0 z-[1100] h-16 bg-white border-b border-slate-200 flex items-center gap-3 px-4 md:px-6">
@@ -11,14 +12,12 @@
         <i class="fas fa-bars"></i>
     </button>
 
-    {{-- Logo & judul --}}
+    {{-- Logo Logeva --}}
     <a href="{{ route('home') }}" class="flex items-center gap-3 min-w-0">
-        <img src="{{ asset('assets/logo/logogmls.png') }}" alt="Logo GMLS"
-             class="w-10 h-10 rounded-full object-contain bg-white border border-slate-200 shrink-0">
-        <div class="hidden sm:block leading-tight">
-            <p class="font-black text-slate-900">GMLS Logeva</p>
-            <p class="text-xs text-slate-500">Dashboard monitoring TEA</p>
-        </div>
+        <img src="{{ asset('assets/logo/logo-logeva.png') }}" alt="Logo Logeva - Gugus Mitigasi Lebak Selatan"
+             class="h-10 sm:h-11 w-auto object-contain shrink-0">
+        <span class="hidden lg:block h-8 w-px bg-slate-200"></span>
+        <p class="hidden lg:block text-xs text-slate-500 leading-tight">Dashboard<br>monitoring TEA</p>
     </a>
 
     {{-- Kanan: cari, notifikasi, profil --}}
@@ -60,15 +59,16 @@
                         <p class="text-sm font-bold text-slate-800 truncate">{{ $user->email }}</p>
                     </div>
 
+                    @if ($isAdmin)
+                        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-50">
+                            <i class="fas fa-gauge w-5"></i> Panel Admin
+                        </a>
+                    @endif
+
                     <a href="{{ route('profile') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
                         <i class="far fa-user w-5 text-slate-400"></i> Profil
                     </a>
 
-                    @if ($isAdmin)
-                        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
-                            <i class="fas fa-gauge w-5 text-slate-400"></i> Panel Admin
-                        </a>
-                    @endif
 
                     <form action="{{ route('logout') }}" method="POST" class="border-t border-slate-100 mt-1 pt-1">
                         @csrf
