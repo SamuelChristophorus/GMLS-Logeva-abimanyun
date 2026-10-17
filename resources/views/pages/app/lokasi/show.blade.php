@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', $lokasi->nama_lokasi)
 
@@ -37,11 +37,11 @@
 
         <div>
 
-            <a href="{{ route('home') }}"
+            <a href="{{ route('lokasi.index') }}"
                class="inline-flex items-center gap-2 text-slate-300 hover:text-white transition mb-6">
 
                 <i class="fas fa-arrow-left"></i>
-                <span>Kembali ke Beranda</span>
+                <span>Kembali ke Manajemen Posko</span>
 
             </a>
 

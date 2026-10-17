@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -35,16 +35,38 @@
     <div class="max-w-4xl mx-auto relative">
         <form action="{{route('lokasi.store')}}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
-            <!-- Use logged-in user's relawan ID by default in this public context -->
+            {{-- Penanggung jawab posko: relawan = akun sendiri, admin = pilih relawan --}}
             @php
                 $relawan = auth()->user()?->relawan;
+                $isAdmin = auth()->user()?->hasRole('admin');
             @endphp
 
-            @if($relawan || auth()->user()?->role === 'admin')
-                <input type="hidden" name="relawan_id" value="{{ $relawan->id ?? '' }}">
+            @if ($isAdmin)
+                <div class="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+                    <label for="relawan_id" class="block text-sm font-bold text-slate-700 mb-1">
+                        Relawan Penanggung Jawab <span class="text-rose-500">*</span>
+                    </label>
+                    <p class="text-xs text-slate-500 mb-3">Anda masuk sebagai admin, pilih relawan yang akan mengelola posko ini.</p>
+                    <div class="relative">
+                        <i class="fas fa-user-shield absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        <select name="relawan_id" id="relawan_id"
+                                class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 @error('relawan_id') border-rose-500 @enderror">
+                            <option value="" disabled {{ old('relawan_id') ? '' : 'selected' }}>-- Pilih Relawan --</option>
+                            @foreach ($relawans as $r)
+                                <option value="{{ $r->id }}" @selected(old('relawan_id') == $r->id)>{{ $r->user->name }} ({{ $r->user->email }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @error('relawan_id')
+                        <p class="mt-1.5 text-xs font-bold text-rose-500"><i class="fas fa-exclamation-circle"></i> {{ $message }}</p>
+                    @enderror
+                </div>
+            @elseif ($relawan)
+                <input type="hidden" name="relawan_id" value="{{ $relawan->id }}">
             @else
-                <div class="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
-                    Akun ini belum terhubung dengan data relawan.
+                <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-semibold">
+                    <i class="fas fa-circle-exclamation mr-1"></i>
+                    Akun Anda belum terdaftar sebagai relawan, sehingga belum dapat melaporkan posko. Hubungi admin untuk didaftarkan.
                 </div>
             @endif
 

@@ -53,7 +53,15 @@ public function update(Request $request, $id)
 {
     $logistik = Logistik::findOrFail($id);
 
+    $request->validate([
+        'nama_item' => 'required',
+        'kategori_logistik_id' => 'required|exists:kategori_logistiks,id',
+        'satuan' => 'required',
+        'kebutuhan_harian' => 'nullable|numeric|min:0',
+    ]);
+
     $logistik->update([
+        'kategori_logistik_id' => $request->kategori_logistik_id,
         'nama_item' => $request->nama_item,
         'satuan' => $request->satuan,
         'kebutuhan_harian' => $request->kebutuhan_harian,

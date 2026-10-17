@@ -1,10 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'Edit Pengungsi')
 
 @section('content')
 
-<div class="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white py-10">
+<div class="bg-gradient-to-br from-slate-100 via-slate-50 to-white py-10">
 
     <div class="max-w-5xl mx-auto px-6">
 

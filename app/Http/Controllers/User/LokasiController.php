@@ -8,6 +8,7 @@ use App\Http\Requests\StoreLokasiRequest;
 use App\Interfaces\DesaRepositoryInterface;
 use App\Interfaces\LokasiRepositoryInterface;
 use App\Interfaces\SphereLokasiRepositoryInterface;
+use App\Models\Relawan;
 use App\Services\OperasionalLokasiService;
 use Illuminate\Http\Request;
 
@@ -43,13 +44,40 @@ class LokasiController extends Controller
             $lokasis = $this->lokasiRepository->getAllLokasis();
         }
 
-        return view('pages.app.lokasi.index', compact('lokasis'));
+        $lokasis->load(['desa', 'latestStatusView'])->loadCount('pengungsi');
+
+        $ringkasan = [
+            'total'      => $lokasis->count(),
+            'beroperasi' => $lokasis->filter->isBeroperasi()->count(),
+            'kapasitas'  => $lokasis->sum('kapasitas_pengungsi'),
+            'pengungsi'  => $lokasis->sum('pengungsi_count'),
+        ];
+
+        return view('pages.app.lokasi.index', compact('lokasis', 'ringkasan'));
     }
 
     public function myLokasi(Request $request)
     {
-        $lokasis = $this->lokasiRepository->getLokasiByRelawanId($request->status);
-        return view('pages.app.lokasi.my-lokasi', compact('lokasis'));
+        $status = in_array($request->status, ['pending', 'approved', 'rejected'], true)
+            ? $request->status
+            : 'pending';
+
+        // Admin melihat & memverifikasi laporan semua relawan, relawan hanya miliknya
+        $isAdmin   = $request->user()->hasRole('admin');
+        $relawanId = $request->user()->relawan?->id;
+
+        if ($isAdmin) {
+            $lokasis = $this->lokasiRepository->getLokasiByStatus($status);
+            $counts  = $this->lokasiRepository->countLokasiPerStatus();
+        } elseif ($relawanId) {
+            $lokasis = $this->lokasiRepository->getLokasiByStatus($status, $relawanId);
+            $counts  = $this->lokasiRepository->countLokasiPerStatus($relawanId);
+        } else {
+            $lokasis = collect();
+            $counts  = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+        }
+
+        return view('pages.app.lokasi.my-lokasi', compact('lokasis', 'counts', 'status', 'isAdmin'));
     }
 
     public function show($id, OperasionalLokasiService $operasionalService)
@@ -67,14 +95,32 @@ class LokasiController extends Controller
     public function create()
     {
         $desas = $this->desaRepository->getAllDesas();
-        return view('pages.app.lokasi.create', compact('desas'));
+
+        // Admin tidak punya data relawan sendiri, jadi memilih relawan penanggung jawab
+        $relawans = auth()->user()->hasRole('admin')
+            ? Relawan::with('user')->whereHas('user')->get()
+            : collect();
+
+        return view('pages.app.lokasi.create', compact('desas', 'relawans'));
     }
 
     public function store(StoreLokasiRequest $request)
     {
         $data = $request->validated();
 
-        $data['relawan_id'] = auth()->user()->relawan->id;
+        // Relawan selalu tercatat sebagai penanggung jawab posko yang ia laporkan;
+        // admin memakai relawan yang dipilih di form.
+        if (! $request->user()->hasRole('admin')) {
+            $relawan = $request->user()->relawan;
+
+            if (! $relawan) {
+                return back()->withInput()->withErrors([
+                    'relawan_id' => 'Akun Anda belum terdaftar sebagai relawan, sehingga belum dapat melaporkan posko.',
+                ]);
+            }
+
+            $data['relawan_id'] = $relawan->id;
+        }
 
         if ($request->hasFile('gambar_lokasi')) {
             // Disimpan ke <folder public>/storage/assets/lokasi/gambar (otomatis benar di localhost & Hostinger)

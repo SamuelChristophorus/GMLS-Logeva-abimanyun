@@ -90,7 +90,19 @@ class LokasiRepository implements LokasiRepositoryInterface
             return collect();
         }
 
-        return Lokasi::where('relawan_id', $user->relawan->id)
+        return $this->getLokasiByStatus($status, $user->relawan->id);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET LOKASI BY STATUS PERSETUJUAN TERAKHIR
+    | $relawanId = null -> semua relawan (dipakai admin)
+    |--------------------------------------------------------------------------
+    */
+    public function getLokasiByStatus(string $status, ?int $relawanId = null)
+    {
+        return Lokasi::with(['desa', 'statusLokasi', 'relawan.user'])
+            ->when($relawanId, fn ($q) => $q->where('relawan_id', $relawanId))
 
             ->whereHas('statusLokasi', function (Builder $query) use ($status) {
 
@@ -100,11 +112,40 @@ class LokasiRepository implements LokasiRepositoryInterface
 
                         $subQuery->selectRaw('MAX(id)')
                             ->from('status_lokasis')
+                            ->whereNull('deleted_at')
                             ->groupBy('lokasi_id');
                     });
             })
 
+            ->latest()
             ->get();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | JUMLAH LOKASI PER STATUS PERSETUJUAN TERAKHIR
+    |--------------------------------------------------------------------------
+    */
+    public function countLokasiPerStatus(?int $relawanId = null): array
+    {
+        $counts = Lokasi::query()
+            ->when($relawanId, fn ($q) => $q->where('lokasis.relawan_id', $relawanId))
+            ->join('status_lokasis', 'status_lokasis.lokasi_id', '=', 'lokasis.id')
+            ->whereIn('status_lokasis.id', function ($subQuery) {
+                $subQuery->selectRaw('MAX(id)')
+                    ->from('status_lokasis')
+                    ->whereNull('deleted_at')
+                    ->groupBy('lokasi_id');
+            })
+            ->selectRaw('status_lokasis.status, COUNT(*) as jumlah')
+            ->groupBy('status_lokasis.status')
+            ->pluck('jumlah', 'status');
+
+        return [
+            'pending'  => (int) ($counts['pending'] ?? 0),
+            'approved' => (int) ($counts['approved'] ?? 0),
+            'rejected' => (int) ($counts['rejected'] ?? 0),
+        ];
     }
 
     /*

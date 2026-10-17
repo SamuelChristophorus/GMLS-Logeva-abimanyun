@@ -9,6 +9,8 @@
 @php
     $badge    = $lokasi->labelOperasional();
     $bisaKelola = $lokasi->bisaDikelolaOleh(auth()->user());
+    $isAdmin    = auth()->user()?->hasRole('admin') ?? false;
+    $statusPersetujuan = optional($lokasi->latestStatusView)->status ?? 'pending';
     $warnaBadge = [
         'green' => 'bg-green-100 text-green-700 border-green-200',
         'amber' => 'bg-amber-100 text-amber-700 border-amber-200',
@@ -40,14 +42,43 @@
                 </span>
             @elseif ($lokasi->status_operasional === 'selesai' && $lokasi->selesai_beroperasi_at)
                 <span class="text-sm text-slate-500">Ditutup {{ $lokasi->selesai_beroperasi_at->translatedFormat('d M Y, H:i') }}</span>
+            @elseif ($statusPersetujuan === 'rejected')
+                <span class="text-sm text-rose-600">Laporan lokasi ini ditolak admin sehingga tidak dapat beroperasi.</span>
             @elseif (! $lokasi->isApproved())
-                <span class="text-sm text-slate-500">Lokasi harus disetujui admin sebelum dapat beroperasi.</span>
+                <span class="text-sm text-slate-500">Lokasi masih <b>menunggu persetujuan admin</b> sebelum dapat beroperasi.</span>
             @endif
         </div>
     </div>
 
     @if ($bisaKelola)
         <div class="flex flex-wrap gap-2">
+            {{-- Belum disetujui: admin bisa langsung approve / tolak, relawan melihat tombol nonaktif --}}
+            @if (! $lokasi->isApproved())
+                @if ($isAdmin)
+                    @if ($statusPersetujuan !== 'rejected')
+                        <form method="POST" action="{{ route('admin.lokasi.verifikasi', $lokasi->id) }}"
+                              onsubmit="return confirm('Tolak laporan posko ini?')">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="status" value="rejected">
+                            <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-semibold">
+                                <i class="fas fa-xmark"></i> Tolak
+                            </button>
+                        </form>
+                    @endif
+                    <form method="POST" action="{{ route('admin.lokasi.verifikasi', $lokasi->id) }}">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="status" value="approved">
+                        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
+                            <i class="fas fa-check"></i> Setujui Lokasi
+                        </button>
+                    </form>
+                @endif
+                <button type="button" disabled title="Lokasi harus disetujui admin terlebih dahulu"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-400 text-sm font-semibold cursor-not-allowed border border-slate-200">
+                    <i class="fas fa-play"></i> Mulai Operasi
+                </button>
+            @endif
+
             @if (! $lokasi->isBeroperasi() && $lokasi->isApproved())
                 <form method="POST" action="{{ route('lokasi.operasional', $lokasi->id) }}"
                       onsubmit="return confirm('Mulai operasi posko ini? Tampilan akan beralih ke data pengungsi & stok aktual.')">

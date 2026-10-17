@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DesaController;
 use App\Http\Controllers\Admin\LokasiController;
 use App\Http\Controllers\Admin\RelawanController;
 use App\Http\Controllers\Admin\StatusLokasiController;
+use App\Http\Controllers\Admin\VerifikasiLokasiController;
 use App\Http\Controllers\Admin\AdminLogistikController;
 use App\Http\Controllers\Admin\DesaImportController;
 use App\Http\Controllers\Admin\Import\LogistikImportController;
@@ -126,6 +127,10 @@ Route::prefix('admin')
 
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
+
+        // Approve / tolak laporan posko
+        Route::patch('/lokasi/{lokasi}/verifikasi', [VerifikasiLokasiController::class, 'update'])
+            ->name('lokasi.verifikasi');
 
         /*
         |--------------------------------------------------------------------------

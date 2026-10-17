@@ -1,6 +1,5 @@
 @php
     $user     = Auth::user();
-    $isAdmin  = $user && (($user->role ?? null) === 'admin');
     $totalTea = \App\Models\Lokasi::count();
 
     // Class menu: merah kalau aktif, abu-abu kalau tidak
@@ -43,12 +42,6 @@
             <a href="{{ route('lokasi.create') }}" class="{{ $menu(request()->routeIs('lokasi.create')) }}">
                 <i class="fas fa-location-dot w-5 text-center"></i> Tambah Lokasi
             </a>
-
-            @if ($isAdmin)
-                <a href="{{ route('admin.dashboard') }}" class="{{ $menu(false) }}">
-                    <i class="fas fa-gauge w-5 text-center"></i> Panel Admin
-                </a>
-            @endif
         @else
             <a href="{{ route('login') }}" class="{{ $menu(request()->routeIs('login')) }}">
                 <i class="fas fa-right-to-bracket w-5 text-center"></i> Masuk

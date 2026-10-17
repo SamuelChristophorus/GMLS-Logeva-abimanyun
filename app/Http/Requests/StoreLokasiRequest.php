@@ -12,7 +12,8 @@ class StoreLokasiRequest extends FormRequest
     {
         return [
             'desa_id' => 'required|exists:desas,id',
-            'relawan_id' => auth()->user()->hasRole('relawan')  ? 'required|exists:relawans,id' : 'required|exists:relawans,id',
+            // Relawan: diisi otomatis di controller dari akun yang login. Admin: wajib memilih.
+            'relawan_id' => auth()->user()->hasRole('admin') ? 'required|exists:relawans,id' : 'nullable',
             'nama_lokasi'=> 'required',
             'alamat_lokasi'=> 'required',
             'luas_lokasi'=> 'required',

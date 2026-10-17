@@ -34,7 +34,63 @@
         </div>
     </div>
 
-    <!-- 2. STATS CARDS GRID -->
+    <!-- 2. MAP SECTION (paling atas) -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col">
+        
+        <!-- Map Header & Filters -->
+        <div class="p-6 md:p-8 border-b border-slate-100 bg-gradient-to-r from-gray-50/50 to-white flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div class="flex gap-4 items-center">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                    <i class="fas fa-map-marked-alt text-xl text-indigo-600"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold text-slate-800">Pemetaan Titik Pengungsian</h2>
+                    <p class="text-sm text-slate-500 mt-1 font-medium">Visualisasi {{ \App\Models\Lokasi::count() }} lokasi berdasarkan status persetujuan saat ini.</p>
+                </div>
+            </div>
+            
+            <!-- Beautiful Status Filters -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Approved -->
+                @php $approvedCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'approved'); })->count(); @endphp
+                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-emerald-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5 animate-pulse"></div>
+                    <span class="text-sm font-bold text-slate-700 mr-2 text-emerald-700">Disetujui</span>
+                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $approvedCount }}</span>
+                </div>
+                
+                <!-- Pending -->
+                @php $pendingCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'pending'); })->count(); @endphp
+                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-amber-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+                    <div class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2.5"></div>
+                    <span class="text-sm font-bold text-slate-700 mr-2 text-amber-600">Pending</span>
+                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $pendingCount }}</span>
+                </div>
+
+                <!-- Rejected -->
+                @php $rejectedCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'rejected'); })->count(); @endphp
+                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-rose-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+                    <div class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-2.5"></div>
+                    <span class="text-sm font-bold text-slate-700 mr-2 text-rose-600">Ditolak</span>
+                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $rejectedCount }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="p-4 md:p-6 bg-slate-50 relative">
+            
+            <!-- Locator Button overlay -->
+            <button id="btn-my-location" class="absolute top-8 right-8 z-[1000] bg-white text-slate-700 hover:text-blue-600 px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/80 font-bold text-sm flex items-center gap-2 hover:border-blue-300 hover:shadow-blue-500/20 transition-all transform hover:-translate-y-0.5">
+                <i class="fas fa-crosshairs"></i> Cari Lokasi Saya
+            </button>
+
+            <!-- Map Target -->
+            <div id="map" class="h-[500px] lg:h-[600px] w-full rounded-2xl border-4 border-white shadow-sm z-0"></div>
+        </div>
+    </div>
+
+    <!-- 3. STATS CARDS GRID -->
     <!-- The grid adjusts dynamically based on screen size -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         
@@ -126,65 +182,254 @@
         </div>
     </div>
 
-    <!-- 3. MAP SECTION -->
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col mb-12">
-        
-        <!-- Map Header & Filters -->
-        <div class="p-6 md:p-8 border-b border-slate-100 bg-gradient-to-r from-gray-50/50 to-white flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-            <div class="flex gap-4 items-center">
-                <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                    <i class="fas fa-map-marked-alt text-xl text-indigo-600"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl md:text-2xl font-bold text-slate-800">Pemetaan Titik Pengungsian</h2>
-                    <p class="text-sm text-slate-500 mt-1 font-medium">Visualisasi {{ \App\Models\Lokasi::count() }} lokasi berdasarkan status persetujuan saat ini.</p>
-                </div>
-            </div>
-            
-            <!-- Beautiful Status Filters -->
-            <div class="flex flex-wrap items-center gap-3">
-                <!-- Approved -->
-                @php $approvedCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'approved'); })->count(); @endphp
-                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-emerald-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5 animate-pulse"></div>
-                    <span class="text-sm font-bold text-slate-700 mr-2 text-emerald-700">Disetujui</span>
-                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $approvedCount }}</span>
-                </div>
-                
-                <!-- Pending -->
-                @php $pendingCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'pending'); })->count(); @endphp
-                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-amber-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                    <div class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2.5"></div>
-                    <span class="text-sm font-bold text-slate-700 mr-2 text-amber-600">Pending</span>
-                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $pendingCount }}</span>
-                </div>
+    <!-- 4. RINGKASAN ANALITIK (khusus panel admin) -->
+    @php
+        $totalPersetujuan = array_sum($persetujuan) ?: 1;
+        $totalOps         = array_sum($operasional) ?: 1;
+        $segPersetujuan = [
+            ['approved', 'Disetujui', 'fa-circle-check',       'var(--st-good)'],
+            ['pending',  'Menunggu',  'fa-hourglass-half',     'var(--st-warning)'],
+            ['rejected', 'Ditolak',   'fa-circle-xmark',       'var(--st-critical)'],
+        ];
+        $segOps = [
+            ['beroperasi', 'Beroperasi', 'fa-play',  'var(--st-good)'],
+            ['siaga',      'Siaga',      'fa-pause', 'var(--st-warning)'],
+            ['selesai',    'Selesai',    'fa-stop',  'var(--st-neutral)'],
+        ];
+    @endphp
 
-                <!-- Rejected -->
-                @php $rejectedCount = \App\Models\Lokasi::whereHas('latestStatusView', function($q) { $q->where('status', 'rejected'); })->count(); @endphp
-                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 hover:border-rose-300 hover:shadow-sm transition-all shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                    <div class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-2.5"></div>
-                    <span class="text-sm font-bold text-slate-700 mr-2 text-rose-600">Ditolak</span>
-                    <span class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg text-xs font-bold border border-slate-200">{{ $rejectedCount }}</span>
-                </div>
+    <div class="viz-root flex flex-col gap-6">
+
+        {{-- KPI --}}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Posko Beroperasi</p>
+                <p class="mt-1 text-3xl font-black text-slate-800">{{ $operasional['beroperasi'] }}</p>
+                <p class="text-xs text-slate-500 mt-1">dari {{ array_sum($operasional) }} posko terdaftar</p>
             </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Pengungsi</p>
+                <p class="mt-1 text-3xl font-black text-slate-800">{{ number_format($ringkasan['total_pengungsi'], 0, ',', '.') }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ $ringkasan['laki_laki'] }} laki-laki · {{ $ringkasan['perempuan'] }} perempuan</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kapasitas Terisi</p>
+                <p class="mt-1 text-3xl font-black text-slate-800">{{ $ringkasan['persen_terisi'] }}<span class="text-lg text-slate-400">%</span></p>
+                <div class="mt-2 h-2 rounded-full bg-slate-100 overflow-hidden" role="img" aria-label="{{ $ringkasan['persen_terisi'] }} persen kapasitas terisi">
+                    <div class="h-full rounded-full" style="width: {{ min(100, $ringkasan['persen_terisi']) }}%; background: var(--series-1)"></div>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">{{ $ringkasan['pengungsi_aktif'] }} / {{ $ringkasan['kapasitas_aktif'] }} jiwa di posko aktif</p>
+            </div>
+            <a href="{{ route('lokasi.mylokasi', ['status' => 'pending']) }}" class="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-amber-300 transition-colors">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Laporan Menunggu</p>
+                <p class="mt-1 text-3xl font-black text-slate-800">{{ $persetujuan['pending'] }}</p>
+                <p class="text-xs text-amber-700 mt-1 font-semibold"><i class="fas fa-hourglass-half"></i> Perlu diverifikasi &rarr;</p>
+            </a>
         </div>
 
-        <!-- Map Container -->
-        <div class="p-4 md:p-6 bg-slate-50 relative">
-            
-            <!-- Locator Button overlay -->
-            <button id="btn-my-location" class="absolute top-8 right-8 z-[1000] bg-white text-slate-700 hover:text-blue-600 px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/80 font-bold text-sm flex items-center gap-2 hover:border-blue-300 hover:shadow-blue-500/20 transition-all transform hover:-translate-y-0.5">
-                <i class="fas fa-crosshairs"></i> Cari Lokasi Saya
-            </button>
+        {{-- Status persetujuan & operasional (bar bersegmen) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            @foreach ([
+                ['Status Persetujuan Laporan', $persetujuan, $segPersetujuan, $totalPersetujuan],
+                ['Status Operasional Posko',   $operasional, $segOps,         $totalOps],
+            ] as [$judul, $data, $segmen, $total])
+                <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                    <h3 class="text-base font-bold text-slate-800 mb-4">{{ $judul }}</h3>
+                    <div class="flex h-4 w-full rounded-md overflow-hidden gap-[2px] bg-slate-100">
+                        @foreach ($segmen as [$key, $label, $icon, $warna])
+                            @if ($data[$key] > 0)
+                                <div class="h-full first:rounded-l-md last:rounded-r-md" title="{{ $label }}: {{ $data[$key] }}"
+                                     style="width: {{ $data[$key] / $total * 100 }}%; background: {{ $warna }}"></div>
+                            @endif
+                        @endforeach
+                    </div>
+                    <ul class="mt-4 grid grid-cols-3 gap-2">
+                        @foreach ($segmen as [$key, $label, $icon, $warna])
+                            <li class="text-sm">
+                                <span class="flex items-center gap-1.5 text-slate-500 font-semibold">
+                                    <i class="fas {{ $icon }} text-xs" style="color: {{ $warna }}"></i> {{ $label }}
+                                </span>
+                                <span class="text-xl font-black text-slate-800">{{ $data[$key] }}</span>
+                                <span class="text-xs text-slate-400">({{ round($data[$key] / $total * 100) }}%)</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endforeach
+        </div>
 
-            <!-- Map Target -->
-            <div id="map" class="h-[500px] lg:h-[600px] w-full rounded-2xl border-4 border-white shadow-sm z-0"></div>
+        {{-- Grafik --}}
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <h3 class="text-base font-bold text-slate-800">Laporan Posko Masuk</h3>
+                <p class="text-xs text-slate-500 mb-4">Jumlah lokasi baru dilaporkan per bulan, 6 bulan terakhir</p>
+                <div class="h-64"><canvas id="chartTren" aria-label="Grafik laporan posko per bulan"></canvas></div>
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <h3 class="text-base font-bold text-slate-800">Keterisian Posko Beroperasi</h3>
+                <p class="text-xs text-slate-500 mb-4">Persentase pengungsi terhadap kapasitas (10 tertinggi)</p>
+                @if ($keterisian->isEmpty())
+                    <div class="h-64 flex flex-col items-center justify-center text-slate-400 text-sm">
+                        <i class="fas fa-campground text-3xl mb-2"></i> Belum ada posko yang beroperasi.
+                    </div>
+                @else
+                    <div class="h-64"><canvas id="chartKeterisian" aria-label="Grafik keterisian posko"></canvas></div>
+                @endif
+            </div>
+            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <h3 class="text-base font-bold text-slate-800">Komposisi Pengungsi per Usia</h3>
+                <p class="text-xs text-slate-500 mb-4">Seluruh posko · {{ $ringkasan['rentan'] }} orang termasuk kelompok rentan</p>
+                @if ($ringkasan['total_pengungsi'] === 0)
+                    <div class="h-64 flex flex-col items-center justify-center text-slate-400 text-sm">
+                        <i class="fas fa-users text-3xl mb-2"></i> Belum ada data pengungsi.
+                    </div>
+                @else
+                    <div class="h-64"><canvas id="chartUsia" aria-label="Grafik komposisi usia pengungsi"></canvas></div>
+                @endif
+            </div>
+
+            {{-- Antrean verifikasi --}}
+            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">Antrean Verifikasi</h3>
+                        <p class="text-xs text-slate-500">Laporan posko terbaru yang menunggu persetujuan</p>
+                    </div>
+                    <a href="{{ route('lokasi.mylokasi', ['status' => 'pending']) }}" class="text-xs font-bold text-blue-600 hover:text-blue-700">Lihat semua &rarr;</a>
+                </div>
+                <div class="flex-1 divide-y divide-slate-100">
+                    @forelse ($laporanPending as $lp)
+                        <div class="py-3 flex items-center gap-3">
+                            <div class="flex-1 min-w-0">
+                                <a href="{{ route('admin.lokasi.show', $lp->id) }}" class="block text-sm font-bold text-slate-800 truncate hover:text-blue-600">{{ $lp->nama_lokasi }}</a>
+                                <p class="text-xs text-slate-500 truncate">
+                                    Desa {{ $lp->desa->nama_desa ?? '-' }} · {{ $lp->relawan?->user?->name ?? '-' }} · {{ $lp->created_at->diffForHumans() }}
+                                </p>
+                            </div>
+                            <form method="POST" action="{{ route('admin.lokasi.verifikasi', $lp->id) }}" class="flex gap-1.5 shrink-0">
+                                @csrf @method('PATCH')
+                                <button type="submit" name="status" value="rejected" onclick="return confirm('Tolak laporan posko ini?')"
+                                        class="w-9 h-9 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Tolak">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
+                                <button type="submit" name="status" value="approved"
+                                        class="w-9 h-9 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700" title="Setujui">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </form>
+                        </div>
+                    @empty
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400 text-sm py-10">
+                            <i class="fas fa-circle-check text-3xl mb-2 text-emerald-400"></i> Semua laporan sudah diverifikasi.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
     </div>
+
 </div>
 @endsection
 
 @section('scripts')
+<style>
+    .viz-root {
+        --series-1:    #2a78d6;
+        --st-good:     #0ca30c;
+        --st-warning:  #fab219;
+        --st-critical: #d03b3b;
+        --st-neutral:  #94a3b8;
+    }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') return;
+
+    const css    = getComputedStyle(document.querySelector('.viz-root'));
+    const BLUE   = css.getPropertyValue('--series-1').trim();
+    const INK    = '#475569';   // slate-600 untuk teks sumbu
+    const GRID   = '#eef2f7';
+
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.color = INK;
+
+    const tooltip = {
+        backgroundColor: '#0f172a', padding: 10, cornerRadius: 8,
+        titleFont: { weight: 'bold' }, displayColors: false,
+    };
+    const sumbu = (extra = {}) => ({
+        grid: { color: GRID, drawTicks: false }, border: { display: false },
+        ticks: { padding: 8, precision: 0 }, ...extra,
+    });
+
+    // Tren laporan masuk (garis + crosshair tooltip)
+    const tren = @json($trenLaporan);
+    new Chart(document.getElementById('chartTren'), {
+        type: 'line',
+        data: {
+            labels: tren.map(t => t.label),
+            datasets: [{
+                label: 'Laporan',
+                data: tren.map(t => t.jumlah),
+                borderColor: BLUE, backgroundColor: BLUE + '1a', fill: true,
+                borderWidth: 2, tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+                pointBackgroundColor: BLUE, pointBorderColor: '#fff', pointBorderWidth: 2,
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { ...tooltip, callbacks: { label: c => c.parsed.y + ' laporan' } } },
+            scales: { x: sumbu({ grid: { display: false } }), y: sumbu({ beginAtZero: true }) },
+        },
+    });
+
+    // Keterisian posko (bar horizontal, persen)
+    const isi = @json($keterisian);
+    const elIsi = document.getElementById('chartKeterisian');
+    if (elIsi) {
+        new Chart(elIsi, {
+            type: 'bar',
+            data: {
+                labels: isi.map(i => i.nama),
+                datasets: [{ label: 'Terisi', data: isi.map(i => i.persen), backgroundColor: BLUE, borderRadius: 4, borderSkipped: 'start', maxBarThickness: 22 }],
+            },
+            options: {
+                indexAxis: 'y', maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { ...tooltip, callbacks: { label: c => `${c.parsed.x}% · ${isi[c.dataIndex].pengungsi} / ${isi[c.dataIndex].kapasitas} jiwa` } },
+                },
+                scales: {
+                    x: sumbu({ beginAtZero: true, suggestedMax: 100, ticks: { padding: 8, callback: v => v + '%' } }),
+                    y: sumbu({ grid: { display: false } }),
+                },
+            },
+        });
+    }
+
+    // Komposisi usia (bar vertikal)
+    const usia = @json($usia);
+    const elUsia = document.getElementById('chartUsia');
+    if (elUsia) {
+        new Chart(elUsia, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(usia),
+                datasets: [{ label: 'Pengungsi', data: Object.values(usia), backgroundColor: BLUE, borderRadius: 4, borderSkipped: 'start', maxBarThickness: 48 }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { ...tooltip, callbacks: { label: c => c.parsed.y + ' orang' } } },
+                scales: { x: sumbu({ grid: { display: false } }), y: sumbu({ beginAtZero: true }) },
+            },
+        });
+    }
+});
+</script>
+
 <!-- Load Leaflet CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

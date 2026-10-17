@@ -22,6 +22,7 @@
         [x-cloak] { display: none !important; }
     </style>
 
+    @stack('head')
     @stack('styles')
 </head>
 
@@ -53,6 +54,9 @@
 
         </div>
     </div>
+
+    {{-- Toast notifikasi (Swal::toast dari controller) --}}
+    @include('sweetalert::alert')
 
     @yield('scripts')
     @stack('scripts')

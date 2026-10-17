@@ -1,8 +1,8 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('content')
 
-<div class="min-h-screen bg-slate-50 py-10 px-4">
+<div class="bg-slate-50 py-10 px-4 rounded-3xl">
 
     <div class="max-w-2xl mx-auto">
 

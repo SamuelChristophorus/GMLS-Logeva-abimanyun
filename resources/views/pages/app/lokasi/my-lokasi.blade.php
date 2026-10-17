@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'Lokasi Saya')
 
@@ -20,13 +20,17 @@
 
             <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">
 
-                Lokasi Saya
+                {{ $isAdmin ? 'Verifikasi Laporan Posko' : 'Laporanmu' }}
 
             </h1>
 
             <p class="text-slate-500 mt-1 font-medium text-sm">
 
-                Kelola dan pantau seluruh posko pengungsian yang Anda laporkan.
+                @if ($isAdmin)
+                    Tinjau laporan posko dari seluruh relawan, lalu setujui atau tolak.
+                @else
+                    Kelola dan pantau seluruh posko pengungsian yang Anda laporkan.
+                @endif
 
             </p>
 
@@ -52,26 +56,19 @@
 
         <nav class="flex flex-wrap justify-between md:justify-center gap-1" aria-label="Tabs">
 
-            <a href="{{url()->current() . '?status=pending'}}"
-               class="flex-1 text-center {{request('status') === 'pending' || !request('status') ? 'bg-white shadow-sm text-blue-600 font-bold border border-slate-100' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50 font-medium border border-transparent'}} rounded-xl py-2.5 px-4 text-sm transition-all duration-200">
+            @foreach ([
+                'pending'  => ['Menunggu',  'text-blue-600',    'bg-amber-100 text-amber-700'],
+                'approved' => ['Disetujui', 'text-emerald-600', 'bg-emerald-100 text-emerald-700'],
+                'rejected' => ['Ditolak',   'text-rose-600',    'bg-rose-100 text-rose-700'],
+            ] as $key => [$label, $warnaAktif, $warnaBadge])
+                <a href="{{ url()->current() . '?status=' . $key }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 {{ $status === $key ? 'bg-white shadow-sm font-bold border border-slate-100 ' . $warnaAktif : 'text-slate-500 hover:text-slate-700 hover:bg-white/50 font-medium border border-transparent' }} rounded-xl py-2.5 px-4 text-sm transition-all duration-200">
 
-                Menunggu
+                    {{ $label }}
+                    <span class="min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-[11px] font-bold {{ $warnaBadge }}">{{ $counts[$key] }}</span>
 
-            </a>
-
-            <a href="{{url()->current() . '?status=approved'}}"
-               class="flex-1 text-center {{request('status') === 'approved' ? 'bg-white shadow-sm text-emerald-600 font-bold border border-slate-100' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50 font-medium border border-transparent'}} rounded-xl py-2.5 px-4 text-sm transition-all duration-200">
-
-                Disetujui
-
-            </a>
-
-            <a href="{{url()->current() . '?status=rejected'}}"
-               class="flex-1 text-center {{request('status') === 'rejected' ? 'bg-white shadow-sm text-rose-600 font-bold border border-slate-100' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50 font-medium border border-transparent'}} rounded-xl py-2.5 px-4 text-sm transition-all duration-200">
-
-                Ditolak
-
-            </a>
+                </a>
+            @endforeach
 
         </nav>
 
@@ -160,6 +157,19 @@
 
                 </div>
 
+                @if ($isAdmin && $lokasi->relawan?->user)
+                    <p class="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                        <i class="fas fa-user-shield text-slate-300"></i>
+                        Dilaporkan oleh <b class="text-slate-700">{{ $lokasi->relawan->user->name }}</b>
+                    </p>
+                @endif
+
+                @if ($status === 'rejected' && $lokasi->statusLokasi->last()?->catatan)
+                    <p class="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 mb-3">
+                        <i class="fas fa-circle-info mr-1"></i> {{ $lokasi->statusLokasi->last()->catatan }}
+                    </p>
+                @endif
+
                 <!-- FOOTER -->
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between mt-auto">
 
@@ -188,7 +198,53 @@
                 </div>
 
             </div>
-            
+
+            {{-- VERIFIKASI (khusus admin) --}}
+            @if ($isAdmin && $status !== 'approved')
+            <div class="px-5 pb-5">
+                <form method="POST" action="{{ route('admin.lokasi.verifikasi', $lokasi->id) }}" class="space-y-2">
+                    @csrf @method('PATCH')
+                    <input type="text" name="catatan" maxlength="1000" placeholder="Catatan (opsional)"
+                           class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    <div class="flex gap-2">
+                        @if ($status === 'pending')
+                            <button type="submit" name="status" value="rejected"
+                                    onclick="return confirm('Tolak laporan posko ini?')"
+                                    class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold">
+                                <i class="fas fa-xmark"></i> Tolak
+                            </button>
+                        @endif
+                        <button type="submit" name="status" value="approved"
+                                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold">
+                            <i class="fas fa-check"></i> {{ $status === 'rejected' ? 'Setujui Ulang' : 'Setujui' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            @endif
+
+            {{-- OPERASIONAL POSKO --}}
+            @if ($status === 'approved')
+            <div class="px-5 pb-3">
+                <form method="POST" action="{{ route('lokasi.operasional', $lokasi->id) }}"
+                      onsubmit="return confirm('{{ $lokasi->isBeroperasi() ? 'Tutup operasi posko ini?' : 'Mulai operasi posko ini?' }}')">
+                    @csrf @method('PATCH')
+                    @if ($lokasi->isBeroperasi())
+                        <input type="hidden" name="aksi" value="tutup">
+                        <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold">
+                            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                            Beroperasi hari ke-{{ $lokasi->hariOperasi() }} · <i class="fas fa-stop"></i> Tutup Operasi
+                        </button>
+                    @else
+                        <input type="hidden" name="aksi" value="mulai">
+                        <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-bold">
+                            <i class="fas fa-play"></i> {{ $lokasi->status_operasional === 'selesai' ? 'Mulai Operasi Lagi' : 'Mulai Operasi' }}
+                        </button>
+                    @endif
+                </form>
+            </div>
+            @endif
+
             @if ($lokasi->statusLokasi->last()?->status === 'approved')
             <!-- BUTTON PENGUNGSI -->
             <div class="px-5 pb-5">

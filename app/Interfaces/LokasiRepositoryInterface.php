@@ -9,6 +9,8 @@ interface LokasiRepositoryInterface
     public function getLatestLokasi();
 
     public function getLokasiByRelawanId(string $status);
+    public function getLokasiByStatus(string $status, ?int $relawanId = null);
+    public function countLokasiPerStatus(?int $relawanId = null): array;
     public function getLokasiById(int $id);
 
     public function getLokasiByDesa(string $desa);
