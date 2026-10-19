@@ -1,6 +1,6 @@
 @php
     $user     = Auth::user();
-    $totalTea = \App\Models\Lokasi::count();
+    $totalTea = \App\Models\Lokasi::tampilPublik()->count();
 
     // Class menu: merah kalau aktif, abu-abu kalau tidak
     $menu = function ($active) {

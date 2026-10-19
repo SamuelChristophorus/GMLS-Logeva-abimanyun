@@ -89,6 +89,31 @@ class Lokasi extends Model
      |  BARU: STATUS OPERASIONAL
      ========================================================= */
 
+    /** Laporan lokasi ditolak admin (status persetujuan terakhir = rejected). */
+    public function isDitolak(): bool
+    {
+        return optional($this->latestStatusView)->status === 'rejected';
+    }
+
+    /**
+     * Lokasi yang boleh tampil di halaman publik: semua kecuali yang ditolak admin.
+     * Panel admin tidak memakai scope ini sehingga tetap melihat lokasi yang ditolak.
+     */
+    public function scopeTampilPublik($query)
+    {
+        return $query->whereNotIn('lokasis.id', function ($ditolak) {
+            $ditolak->select('lokasi_id')
+                ->from('status_lokasis')
+                ->where('status', 'rejected')
+                ->whereIn('id', function ($terakhir) {
+                    $terakhir->selectRaw('MAX(id)')
+                        ->from('status_lokasis')
+                        ->whereNull('deleted_at')
+                        ->groupBy('lokasi_id');
+                });
+        });
+    }
+
     /** Lokasi sudah disetujui admin (status persetujuan terakhir = approved). */
     public function isApproved(): bool
     {

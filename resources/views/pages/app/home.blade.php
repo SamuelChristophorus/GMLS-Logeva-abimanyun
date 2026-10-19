@@ -3,9 +3,31 @@
 @section('title', 'Monitoring Lokasi')
 
 @php
-    $semuaLokasi = \App\Models\Lokasi::select(
-        'id', 'nama_lokasi', 'alamat_lokasi', 'latitude', 'longitude', 'kapasitas_pengungsi'
-    )->get();
+    // Posko yang laporannya ditolak admin tidak ditampilkan ke publik
+    $semuaLokasi = \App\Models\Lokasi::tampilPublik()
+        ->with(['latestStatusView', 'desa'])
+        ->withCount('pengungsi')
+        ->get();
+
+    // Kondisi posko untuk warna titik di peta publik: hanya beroperasi / tidak beroperasi
+    $petaLokasi = $semuaLokasi->map(function ($l) {
+        $kondisi = $l->isBeroperasi() ? 'beroperasi' : 'tidak';
+
+        return [
+            'id'        => $l->id,
+            'nama'      => $l->nama_lokasi,
+            'alamat'    => $l->alamat_lokasi,
+            'desa'      => $l->desa->nama_desa ?? null,
+            'latitude'  => $l->latitude,
+            'longitude' => $l->longitude,
+            'kapasitas' => (int) $l->kapasitas_pengungsi,
+            'pengungsi' => $l->pengungsi_count,
+            'kondisi'   => $kondisi,
+            'hari_ke'   => $l->hariOperasi(),
+            'sejak'     => $l->mulai_beroperasi_at?->translatedFormat('d M Y'),
+        ];
+    });
+    $jumlahKondisi = $petaLokasi->countBy('kondisi');
 
     $totalTea       = $semuaLokasi->count();
     $totalDesa      = \App\Models\Desa::count();
@@ -82,8 +104,29 @@
                 Tempat Evakuasi Akhir (TEA) terdaftar
             </p>
         </div>
-        <div class="p-4">
+        <div class="p-4 space-y-3">
+            {{-- Legenda + filter kondisi posko --}}
+            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter kondisi posko">
+                <span class="text-xs font-semibold text-slate-500 mr-1">Kondisi posko:</span>
+                @foreach ([
+                    'beroperasi' => ['Beroperasi',       'fa-play'],
+                    'tidak'      => ['Tidak beroperasi', 'fa-pause'],
+                ] as $key => [$label, $ikon])
+                    <button type="button" data-kondisi="{{ $key }}" aria-pressed="true"
+                            class="legenda-tea inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                        <span class="tea-dot tea-{{ $key }} w-5 h-5 text-[9px]"><i class="fas {{ $ikon }}"></i></span>
+                        {{ $label }}
+                        <span class="text-slate-400 font-medium">{{ $jumlahKondisi[$key] ?? 0 }}</span>
+                    </button>
+                @endforeach
+            </div>
+
             <div id="map" class="h-[460px] md:h-[560px] w-full rounded-xl border border-slate-200"></div>
+            <p class="text-xs text-slate-400">
+                <i class="fas fa-hand-pointer mr-1"></i>
+                Arahkan kursor ke titik untuk melihat ringkasan posko, klik titik untuk membuka halaman detail.
+                <span class="sm:hidden">Di HP: ketuk sekali untuk ringkasan, ketuk lagi untuk detail.</span>
+            </p>
         </div>
     </section>
 
@@ -128,12 +171,44 @@
 @endsection
 
 @section('scripts')
+<style>
+    /* Titik posko: warna + ikon sesuai kondisi (ikon membuat status tetap terbaca tanpa bergantung warna) */
+    .tea-dot {
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 9999px; border: 2px solid #fff; color: #fff;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, .35);
+    }
+    .tea-beroperasi { background: #16a34a; }
+    .tea-tidak      { background: #64748b; }
+
+    .tea-marker { position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .tea-marker .tea-dot { width: 26px; height: 26px; font-size: 10px; position: relative; z-index: 1; transition: transform .15s ease; }
+    .tea-marker:hover .tea-dot, .tea-marker.aktif .tea-dot { transform: scale(1.25); }
+    /* Denyut hanya untuk posko yang sedang beroperasi */
+    .tea-marker .tea-denyut {
+        position: absolute; inset: 0; border-radius: 9999px; background: #16a34a; opacity: .35;
+        animation: tea-denyut 1.8s ease-out infinite;
+    }
+    @keyframes tea-denyut { from { transform: scale(.6); opacity: .5; } to { transform: scale(1.6); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .tea-marker .tea-denyut { animation: none; } }
+
+    /* Kartu ringkasan saat hover */
+    .leaflet-tooltip.tea-tooltip {
+        padding: 0; border: 0; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 12px 32px -8px rgba(15, 23, 42, .35); white-space: normal;
+    }
+    .leaflet-tooltip-top.tea-tooltip::before    { border-top-color: #fff; }
+    .leaflet-tooltip-bottom.tea-tooltip::before { border-bottom-color: #fff; }
+    .leaflet-tooltip-right.tea-tooltip::before  { border-right-color: #fff; }
+    .leaflet-tooltip-left.tea-tooltip::before   { border-left-color: #fff; }
+</style>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    const lokasiData = @json($semuaLokasi);
+    const lokasiData = @json($petaLokasi);
     const detailBase = @json(url('lokasi'));   // otomatis ikut /logeva di hosting
 
     const map = L.map('map').setView([-6.93, 106.12], 11);
@@ -145,46 +220,153 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-    const teaIcon = L.divIcon({
+    // Tampilan per kondisi posko (warna di CSS .tea-*)
+    const KONDISI = {
+        beroperasi: { label: 'Beroperasi',       ikon: 'fa-play',  badge: 'bg-green-100 text-green-700' },
+        tidak:      { label: 'Tidak beroperasi', ikon: 'fa-pause', badge: 'bg-slate-200 text-slate-700' },
+    };
+
+    const ikonTea = (kondisi) => L.divIcon({
         className: '',
-        html: `
-            <div class="relative flex items-center justify-center">
-                <div class="absolute w-10 h-10 bg-red-500 rounded-full opacity-20 animate-pulse"></div>
-                <div class="w-5 h-5 bg-red-600 border-2 border-white rounded-full shadow-lg z-10"></div>
-            </div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+        html: `<div class="tea-marker">
+                   ${kondisi === 'beroperasi' ? '<span class="tea-denyut"></span>' : ''}
+                   <span class="tea-dot tea-${kondisi}"><i class="fas ${KONDISI[kondisi].ikon}"></i></span>
+               </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        tooltipAnchor: [0, -16],
     });
+
+    const keteranganStatus = (l) => l.kondisi === 'beroperasi'
+        ? `Hari ke-${l.hari_ke}${l.sejak ? ' · sejak ' + esc(l.sejak) : ''}`
+        : 'Posko sedang tidak menampung pengungsi';
+
+    const isiTooltip = (l) => {
+        const k      = KONDISI[l.kondisi];
+        const persen = l.kapasitas > 0 ? Math.min(100, Math.round(l.pengungsi / l.kapasitas * 100)) : 0;
+        return `
+            <div class="w-64 bg-white">
+                <div class="px-4 pt-3 pb-2">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${k.badge}">
+                        <i class="fas ${k.ikon} text-[9px]"></i> ${k.label}
+                    </span>
+                    <h3 class="mt-2 font-bold text-slate-900 text-sm leading-snug">${esc(l.nama)}</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">${keteranganStatus(l)}</p>
+                </div>
+                <div class="px-4 pb-3 space-y-2 text-xs text-slate-600">
+                    ${l.desa ? `<p><i class="fas fa-map-signs text-slate-400 w-4"></i> Desa ${esc(l.desa)}</p>` : ''}
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span><i class="fas fa-users text-slate-400 w-4"></i> Pengungsi</span>
+                            <span class="font-semibold text-slate-800">${l.pengungsi} / ${l.kapasitas} jiwa</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full rounded-full ${persen >= 90 ? 'bg-red-500' : persen >= 70 ? 'bg-amber-500' : 'bg-blue-600'}" style="width:${persen}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] font-semibold text-red-600">
+                    <i class="fas fa-arrow-pointer mr-1"></i> Klik titik untuk lihat detail &rarr;
+                </div>
+            </div>`;
+    };
+
+    // Kartu ringkasan tidak boleh terpotong tepi peta: pilih sisi titik yang ruangnya cukup.
+    // Urutan pilihan: atas -> bawah -> kanan -> kiri. Anchor ikon berada 16px di atas pusat titik.
+    const JARAK = 10;
+    const posisikanTooltip = (marker, tooltip) => {
+        const el = tooltip.getElement();
+        if (!el) return;
+
+        const titik = map.latLngToContainerPoint(marker.getLatLng());
+        const peta  = map.getSize();
+        const w = el.offsetWidth, h = el.offsetHeight;
+        const pasHorizontal = titik.x - w / 2 >= JARAK && titik.x + w / 2 <= peta.x - JARAK;
+        const pasVertikal   = titik.y - h / 2 >= JARAK && titik.y + h / 2 <= peta.y - JARAK;
+
+        let arah = 'top', offset = [0, 0];
+        if (pasHorizontal && titik.y - 16 - h - JARAK >= 0) {
+            arah = 'top';
+        } else if (pasHorizontal && titik.y + 16 + h + JARAK <= peta.y) {
+            arah = 'bottom'; offset = [0, 32];
+        } else if (titik.x + 16 + w + JARAK <= peta.x) {
+            arah = 'right'; offset = [16, 16];
+        } else {
+            arah = 'left'; offset = [-16, 16];
+        }
+
+        // Kanan/kiri: geser naik/turun bila kartu melewati tepi atas/bawah
+        if ((arah === 'right' || arah === 'left') && !pasVertikal) {
+            const atas = titik.y - h / 2;
+            offset[1] += atas < JARAK ? JARAK - atas : (peta.y - JARAK) - (titik.y + h / 2);
+        }
+
+        if (tooltip.options.direction !== arah || tooltip.options.offset.toString() !== offset.toString()) {
+            tooltip.options.direction = arah;
+            tooltip.options.offset = offset;
+            tooltip.update();
+        }
+    };
+
+    // Di perangkat sentuh tidak ada hover: ketuk pertama tampilkan ringkasan, ketuk kedua buka detail
+    const tanpaHover = window.matchMedia('(hover: none)').matches;
+    let terakhirDiketuk = null;
 
     const markers = [];
 
     lokasiData.forEach(lokasi => {
         const lat = parseFloat(lokasi.latitude);
         const lng = parseFloat(lokasi.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
+        if (isNaN(lat) || isNaN(lng) || !KONDISI[lokasi.kondisi]) return;
 
-        const marker = L.marker([lat, lng], { icon: teaIcon }).addTo(map);
+        const marker = L.marker([lat, lng], {
+            icon: ikonTea(lokasi.kondisi),
+            title: `${lokasi.nama} (${KONDISI[lokasi.kondisi].label})`,
+            alt: lokasi.nama,
+            riseOnHover: true,
+            // Posko beroperasi selalu di atas titik lain saat bertumpuk
+            zIndexOffset: lokasi.kondisi === 'beroperasi' ? 1000 : 0,
+        }).addTo(map);
 
-        marker.bindPopup(`
-            <div class="w-56">
-                <div class="inline-flex px-2 py-1 rounded-full bg-red-100 text-red-700 text-[11px] font-bold mb-2">
-                    Tempat Evakuasi Akhir
-                </div>
-                <h3 class="font-bold text-gray-800 text-base">${esc(lokasi.nama_lokasi)}</h3>
-                <p class="text-sm text-gray-600 mt-1">${esc(lokasi.alamat_lokasi)}</p>
-                <div class="mt-3 text-sm text-gray-700">Kapasitas: ${esc(lokasi.kapasitas_pengungsi)} orang</div>
-                <a href="${detailBase}/${lokasi.id}" class="inline-block mt-3 text-red-600 font-semibold text-sm">
-                    Lihat Detail →
-                </a>
-            </div>
-        `);
+        marker.bindTooltip(isiTooltip(lokasi), {
+            direction: 'top',
+            className: 'tea-tooltip',
+            opacity: 1,
+        });
+        marker.on('tooltipopen', (e) => posisikanTooltip(marker, e.tooltip));
 
-        markers.push({ nama: String(lokasi.nama_lokasi ?? '').toLowerCase(), marker });
+        const urlDetail = `${detailBase}/${lokasi.id}`;
+        marker.on('click', () => {
+            if (tanpaHover && terakhirDiketuk !== marker) {
+                terakhirDiketuk = marker;
+                marker.openTooltip();
+                return;
+            }
+            window.location.href = urlDetail;
+        });
+        // Keyboard: Tab ke titik lalu Enter -> Leaflet meneruskannya sebagai 'click' di atas
+
+        markers.push({ nama: String(lokasi.nama ?? '').toLowerCase(), kondisi: lokasi.kondisi, marker });
     });
+
+    map.on('click', () => { terakhirDiketuk = null; });
 
     if (markers.length) {
         map.fitBounds(L.featureGroup(markers.map(m => m.marker)).getBounds(), { padding: [50, 50] });
     }
+
+    // Legenda = filter: klik untuk menyembunyikan / menampilkan titik dengan kondisi tersebut
+    document.querySelectorAll('.legenda-tea').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tampil = btn.getAttribute('aria-pressed') !== 'true';
+            btn.setAttribute('aria-pressed', tampil);
+            btn.classList.toggle('opacity-40', !tampil);
+            btn.classList.toggle('line-through', !tampil);
+            markers
+                .filter(m => m.kondisi === btn.dataset.kondisi)
+                .forEach(m => tampil ? m.marker.addTo(map) : m.marker.remove());
+        });
+    });
 
     setTimeout(() => map.invalidateSize(), 300);
 
@@ -194,8 +376,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!q) return;
         const hit = markers.find(m => m.nama.includes(q));
         if (hit) {
+            // Kondisi posko sedang disembunyikan lewat legenda? tampilkan lagi
+            if (!map.hasLayer(hit.marker)) {
+                document.querySelector(`.legenda-tea[data-kondisi="${hit.kondisi}"]`)?.click();
+            }
             map.flyTo(hit.marker.getLatLng(), 16);
-            hit.marker.openPopup();
+            map.once('moveend', () => hit.marker.openTooltip());
         } else {
             alert('Lokasi "' + e.detail + '" tidak ditemukan');
         }

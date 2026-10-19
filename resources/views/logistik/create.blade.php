@@ -1,5 +1,7 @@
 @extends('layouts.dashboard')
 
+@section('title', 'Catat Barang Masuk')
+
 @section('content')
 
 <div class="bg-slate-50 py-10 px-4 rounded-3xl">
@@ -13,11 +15,11 @@
             <div class="px-8 py-6 border-b border-slate-100">
 
                 <h1 class="text-3xl font-bold text-slate-800">
-                    Tambah Donasi Logistik
+                    Catat Barang Masuk
                 </h1>
 
                 <p class="text-slate-500 mt-2">
-                    Tambahkan bantuan logistik untuk lokasi pengungsian
+                    Isi setiap kali ada bantuan atau barang yang datang ke posko
                     <span class="font-semibold text-slate-700">
                         {{ $lokasi->nama_lokasi }}
                     </span>
@@ -39,6 +41,14 @@
 
                     </div>
 
+                @endif
+
+                @if ($errors->any())
+                    <div class="mb-6 px-4 py-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-sm">
+                        @foreach ($errors->all() as $e)
+                            <p><i class="fas fa-circle-exclamation mr-1"></i>{{ $e }}</p>
+                        @endforeach
+                    </div>
                 @endif
 
                 {{-- FORM --}}
@@ -73,7 +83,7 @@
 
                             @foreach($logistiks as $item)
 
-                                <option value="{{ $item->id }}">
+                                <option value="{{ $item->id }}" @selected(old('logistik_id') == $item->id)>
 
                                     {{ $item->nama_item }}
                                     ({{ $item->satuan }})
@@ -95,6 +105,7 @@
 
                         <input type="number"
                                name="jumlah_masuk"
+                               value="{{ old('jumlah_masuk') }}" min="1" inputmode="numeric"
                                placeholder="Masukkan jumlah bantuan"
                                class="w-full rounded-xl border border-slate-300
                                       px-4 py-3
@@ -114,6 +125,7 @@
 
                         <input type="text"
                                name="sumber_bantuan"
+                               value="{{ old('sumber_bantuan') }}"
                                placeholder="Contoh: BNPB, Donatur, PMI"
                                class="w-full rounded-xl border border-slate-300
                                       px-4 py-3
@@ -133,6 +145,7 @@
 
                         <input type="date"
                                name="tanggal_masuk"
+                               value="{{ old('tanggal_masuk', now()->toDateString()) }}" max="{{ now()->toDateString() }}"
                                class="w-full rounded-xl border border-slate-300
                                       px-4 py-3
                                       focus:ring-2 focus:ring-red-500
@@ -185,7 +198,7 @@
                                            shadow-md hover:shadow-lg
                                            transition-all duration-200">
 
-                                Simpan Donasi
+                                Simpan Barang Masuk
 
                             </button>
 

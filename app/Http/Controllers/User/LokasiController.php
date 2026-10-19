@@ -46,6 +46,9 @@ class LokasiController extends Controller
 
         $lokasis->load(['desa', 'latestStatusView'])->loadCount('pengungsi');
 
+        // Halaman publik: posko yang ditolak admin tidak ditampilkan
+        $lokasis = $lokasis->reject->isDitolak()->values();
+
         $ringkasan = [
             'total'      => $lokasis->count(),
             'beroperasi' => $lokasis->filter->isBeroperasi()->count(),
@@ -83,6 +86,11 @@ class LokasiController extends Controller
     public function show($id, OperasionalLokasiService $operasionalService)
     {
         $lokasi = $this->lokasiRepository->getLokasiById($id);
+
+        abort_unless($lokasi, 404);
+
+        // Posko yang ditolak hanya bisa dilihat admin & relawan pelapornya (untuk melihat alasan penolakan)
+        abort_if($lokasi->isDitolak() && ! $lokasi->bisaDikelolaOleh(auth()->user()), 404);
 
         // Data dashboard operasional (hanya dihitung jika posko sedang beroperasi)
         $operasional = $lokasi->isBeroperasi()

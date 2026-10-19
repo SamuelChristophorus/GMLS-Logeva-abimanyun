@@ -37,18 +37,40 @@ class OperasionalLokasiService
         return [
             'pengungsi'   => $pengungsi,
             'stok'        => $stok,
-            'stok_status' => [
-                'merah'  => $stok->where('status', 'merah')->count(),
-                'kuning' => $stok->where('status', 'kuning')->count(),
-                'hijau'  => $stok->where('status', 'hijau')->count(),
-            ],
+            'stok_status' => $this->hitungStatus($stok),
             'sphere'      => $this->kebutuhanSphere($pengungsi['total']),
             'stok_masuk_terbaru' => $this->stokMasukTerbaru($lokasi),
             'hari_ke'     => $lokasi->hariOperasi(),
         ];
     }
 
+    /**
+     * Stok logistik posko + status ketahanannya, dengan rumus yang sama seperti panel detail posko.
+     * Dipakai halaman Monitoring Logistik agar status di semua halaman selaras.
+     */
+    public function stokPosko(Lokasi $lokasi): array
+    {
+        $jumlahPengungsi = DB::table('pengungsis')->where('lokasi_id', $lokasi->id)->count();
+        $stok            = $this->stokLogistik($lokasi, $jumlahPengungsi);
+
+        return [
+            'stok'             => $stok,
+            'stok_status'      => $this->hitungStatus($stok),
+            'jumlah_pengungsi' => $jumlahPengungsi,
+        ];
+    }
+
     /* ---------------------------------------------------------------- */
+
+    private function hitungStatus($stok): array
+    {
+        return [
+            'merah'  => $stok->where('status', 'merah')->count(),
+            'kuning' => $stok->where('status', 'kuning')->count(),
+            'hijau'  => $stok->where('status', 'hijau')->count(),
+            'netral' => $stok->where('status', 'netral')->count(),
+        ];
+    }
 
     private function ringkasanPengungsi(Lokasi $lokasi): array
     {

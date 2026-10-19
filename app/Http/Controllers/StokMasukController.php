@@ -8,6 +8,10 @@ use App\Models\Lokasi;
 use App\Models\Logistik;
 use App\Models\StokMasuk;
 use App\Models\StokLogistik;
+use App\Models\StokKeluar;
+use App\Services\OperasionalLokasiService;
+use Illuminate\Support\Facades\DB;
+use RealRashid\SweetAlert\Facades\Alert as Swal;
 
 class StokMasukController extends Controller
 {
@@ -15,7 +19,9 @@ class StokMasukController extends Controller
     {
         $lokasi = Lokasi::findOrFail($lokasi);
 
-        $logistiks = Logistik::all();
+        abort_unless($lokasi->bisaDikelolaOleh(auth()->user()), 403, 'Anda tidak berhak mengelola logistik posko ini.');
+
+        $logistiks = Logistik::orderBy('nama_item')->get();
 
         return view('logistik.create', compact(
             'lokasi',
@@ -26,132 +32,108 @@ class StokMasukController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'lokasi_id' => 'required',
-            'logistik_id' => 'required',
+            'lokasi_id' => 'required|exists:lokasis,id',
+            'logistik_id' => 'required|exists:logistiks,id',
             'jumlah_masuk' => 'required|integer|min:1',
             'sumber_bantuan' => 'required',
-            'tanggal_masuk' => 'required|date',
+            'tanggal_masuk' => 'required|date|before_or_equal:today',
+        ], [
+            'tanggal_masuk.before_or_equal' => 'Tanggal tidak boleh setelah hari ini.',
         ]);
 
-        StokMasuk::create([
-            'lokasi_id' => $request->lokasi_id,
-            'logistik_id' => $request->logistik_id,
-            'relawan_id' => auth()->user()->relawan?->id,
-            'jumlah_masuk' => $request->jumlah_masuk,
-            'sumber_bantuan' => $request->sumber_bantuan,
-            'tanggal_masuk' => $request->tanggal_masuk,
-            'keterangan' => $request->keterangan,
-        ]);
+        $lokasi = Lokasi::findOrFail($request->lokasi_id);
 
-        $stok = StokLogistik::firstOrCreate(
-            [
+        abort_unless($lokasi->bisaDikelolaOleh(auth()->user()), 403, 'Anda tidak berhak mengelola logistik posko ini.');
+
+        DB::transaction(function () use ($request) {
+            StokMasuk::create([
                 'lokasi_id' => $request->lokasi_id,
                 'logistik_id' => $request->logistik_id,
-            ],
-            [
-                'jumlah_stok' => 0,
-                'status_ketersediaan' => 'Merah'
-            ]
-        );
+                'relawan_id' => auth()->user()->relawan?->id,
+                'jumlah_masuk' => $request->jumlah_masuk,
+                'sumber_bantuan' => $request->sumber_bantuan,
+                'tanggal_masuk' => $request->tanggal_masuk,
+                'keterangan' => $request->keterangan,
+            ]);
 
-        $stok->jumlah_stok += $request->jumlah_masuk;
+            $stok = StokLogistik::lockForUpdate()->firstOrCreate(
+                [
+                    'lokasi_id' => $request->lokasi_id,
+                    'logistik_id' => $request->logistik_id,
+                ],
+                [
+                    'jumlah_stok' => 0,
+                    'status_ketersediaan' => 'Merah'
+                ]
+            );
 
-        if ($stok->jumlah_stok > 100) {
+            $stok->ubahJumlah((int) $request->jumlah_masuk);
+        });
 
-            $stok->status_ketersediaan = 'Hijau';
+        Swal::toast('Barang masuk berhasil dicatat, stok sudah ditambah', 'success')->timerProgressBar();
 
-        } elseif ($stok->jumlah_stok > 0) {
-
-            $stok->status_ketersediaan = 'Kuning';
-
-        } else {
-
-            $stok->status_ketersediaan = 'Merah';
-        }
-
-        $stok->save();
-
-        return redirect()->back()
-            ->with('success', 'Donasi berhasil dicatat');
+        return redirect()->route('logistik.index', $lokasi->id);
     }
 
-    public function index($lokasi_id)
+    public function index($lokasi_id, OperasionalLokasiService $operasionalService)
 {
-    $lokasi = Lokasi::with('sphereLokasi')->findOrFail($lokasi_id);
+    $lokasi = Lokasi::findOrFail($lokasi_id);
 
-    $stokLogistiks = StokLogistik::with('logistik')
+    // Hitungan stok & status SAMA dengan panel detail posko:
+    // kebutuhan harian (Master Logistik) x jumlah pengungsi tercatat
+    [
+        'stok'             => $stok,
+        'stok_status'      => $stokStatus,
+        'jumlah_pengungsi' => $jumlahPengungsi,
+    ] = $operasionalService->stokPosko($lokasi);
+
+    $terhitung        = $stok->whereNotNull('cukup_hari');
+    $rataHariBertahan = $terhitung->isNotEmpty() ? round($terhitung->avg('cukup_hari'), 1) : null;
+
+    // Riwayat gabungan barang masuk (+) & keluar (-), terbaru di atas
+    $riwayat = StokMasuk::with('logistik')
         ->where('lokasi_id', $lokasi_id)
-        ->get();
+        ->get()
+        ->map(fn ($m) => (object) [
+            'jenis'      => 'masuk',
+            'tanggal'    => \Carbon\Carbon::parse($m->tanggal_masuk),
+            'dicatat'    => $m->created_at,
+            'item'       => optional($m->logistik)->nama_item ?? 'Data tidak ditemukan',
+            'satuan'     => optional($m->logistik)->satuan,
+            'jumlah'     => $m->jumlah_masuk,
+            'keterangan' => 'Dari ' . $m->sumber_bantuan,
+            'catatan'    => $m->keterangan,
+        ])
+        ->concat(
+            StokKeluar::with('logistik')
+                ->where('lokasi_id', $lokasi_id)
+                ->get()
+                ->map(fn ($k) => (object) [
+                    'jenis'      => 'keluar',
+                    'tanggal'    => $k->tanggal_keluar,
+                    'dicatat'    => $k->created_at,
+                    'item'       => optional($k->logistik)->nama_item ?? 'Data tidak ditemukan',
+                    'satuan'     => optional($k->logistik)->satuan,
+                    'jumlah'     => $k->jumlah_keluar,
+                    'keterangan' => $k->labelTujuan() . ($k->penerima ? ' · ' . $k->penerima : ''),
+                    'catatan'    => $k->keterangan,
+                ])
+        )
+        ->sortByDesc(fn ($r) => $r->tanggal->format('Ymd') . $r->dicatat?->format('His'))
+        ->values();
 
-    $riwayatMasuk = StokMasuk::with('logistik')
-        ->where('lokasi_id', $lokasi_id)
-        ->latest()
-        ->get();
+    $bisaKelola = $lokasi->bisaDikelolaOleh(auth()->user());
+    $isAdmin    = auth()->user()?->hasRole('admin') ?? false;
 
-        $jumlahKritis = 0;
-        $jumlahWaspada = 0;
-        $jumlahAman = 0;
-        $totalHariBertahan = 0;
-
-        foreach ($stokLogistiks as $stok) {
-
-    $kebutuhanPerHari = 0;
-
-   if (strtolower($stok->logistik->nama_item) == 'beras') {
-
-    $kebutuhanPerHari =
-        round(
-            ($lokasi->sphereLokasi->kalori / 180 * 100) / 1000,
-            2
-        );
-
-} elseif (strtolower($stok->logistik->nama_item) == 'air mineral') {
-
-    $kebutuhanPerHari =
-        $lokasi->sphereLokasi->air_hidup +
-        $lokasi->sphereLokasi->air_kebersihan +
-        $lokasi->sphereLokasi->air_memasak;
-
-} else {
-
-    $kebutuhanPerHari =
-        $stok->logistik->kebutuhan_harian ?? 0;
-}
-    $hariBertahan =
-        $kebutuhanPerHari > 0
-        ? ($stok->jumlah_stok / $kebutuhanPerHari)
-        : 0;
-
-    $totalHariBertahan += $hariBertahan;
-
-    if ($hariBertahan < 3) {
-
-        $jumlahKritis++;
-
-    } elseif ($hariBertahan < 7) {
-
-        $jumlahWaspada++;
-
-    } else {
-
-        $jumlahAman++;
-    }
-}
-
-$rataHariBertahan =
-    $stokLogistiks->count() > 0
-    ? round($totalHariBertahan / $stokLogistiks->count(), 2)
-    : 0;
-
-   return view('logistik.index', compact(
-    'lokasi',
-    'stokLogistiks',
-    'riwayatMasuk',
-    'jumlahKritis',
-    'jumlahWaspada',
-    'jumlahAman',
-    'rataHariBertahan'
-));
-
+    return view('logistik.index', compact(
+        'lokasi',
+        'stok',
+        'stokStatus',
+        'jumlahPengungsi',
+        'rataHariBertahan',
+        'riwayat',
+        'bisaKelola',
+        'isAdmin'
+    ));
 }
 }

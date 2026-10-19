@@ -24,6 +24,7 @@ use App\Http\Controllers\User\PengungsiController;
 use App\Http\Controllers\User\PengungsiImportController;
 
 use App\Http\Controllers\StokMasukController;
+use App\Http\Controllers\StokKeluarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -233,5 +234,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/stok-masuk/store', [StokMasukController::class, 'store'])
         ->name('stok-masuk.store');
+
+    // Barang keluar (dibagikan / dimasak / dikirim / rusak)
+    Route::get('/logistik/{lokasi}/keluar', [StokKeluarController::class, 'create'])
+        ->name('logistik.keluar');
+
+    Route::post('/logistik/{lokasi}/keluar', [StokKeluarController::class, 'store'])
+        ->name('logistik.keluar.store');
 
 });
