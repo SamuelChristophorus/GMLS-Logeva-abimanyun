@@ -453,7 +453,25 @@
                     </a>
 
 
-                    <form action="{{ route('pengungsi.import', $lokasi->id) }}"
+                    @if ($lokasi->bisaDikelolaOleh(auth()->user()))
+                    <!-- TEMPLATE -->
+                    <a href="{{ route('pengungsi.import.template', $lokasi->id) }}"
+                       class="inline-flex items-center gap-2
+                              px-6 py-4 rounded-2xl
+                              bg-white border border-blue-200
+                              hover:bg-blue-50
+                              text-blue-700 font-bold
+                              transition-all duration-300"
+                       title="Unduh template Excel beserta petunjuk pengisian">
+
+                        <i class="fas fa-file-arrow-down"></i>
+
+                        Unduh Template
+
+                    </a>
+
+                    <!-- IMPORT: upload -> pratinjau -> konfirmasi -->
+                    <form action="{{ route('pengungsi.import.preview', $lokasi->id) }}"
                         method="POST"
                         enctype="multipart/form-data">
 
@@ -466,14 +484,15 @@
                                 text-white font-bold
                                 shadow-lg shadow-blue-500/20
                                 transition-all duration-300
-                                cursor-pointer">
+                                cursor-pointer"
+                           title="Data dicek dan ditampilkan dulu sebelum disimpan">
 
                         <i class="fas fa-file-import"></i>
 
                         Import Excel / CSV
 
                         <input type="file"
-                            name="import_file"
+                            name="file"
                             accept=".csv,.xlsx,.xls"
                             onchange="this.form.submit()"
                             hidden>
@@ -481,6 +500,7 @@
                     </label>
 
                     </form>
+                    @endif
 
                     <!-- EXPORT -->
                     <a href="{{ route('pengungsi.export', $lokasi->id) }}"
@@ -643,44 +663,45 @@
             </div>
             
             <!-- SEARCH + TOGGLE -->
-            <div class="mt-10 flex flex-col md:flex-row items-center gap-4">
+            <div class="mt-8 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+
+                <!-- JUDUL + JUMLAH -->
+                <div class="flex items-center gap-3 px-3 py-1 shrink-0">
+                    <div class="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                        <i class="fas fa-users text-sm"></i>
+                    </div>
+                    <div class="leading-tight">
+                        <p class="text-sm font-black text-slate-900">Daftar Pengungsi</p>
+                        <p class="text-[11px] text-slate-500"><span id="jumlahTampil">{{ $lokasi->pengungsi->count() }}</span> dari {{ $lokasi->pengungsi->count() }} orang</p>
+                    </div>
+                </div>
 
                 <!-- SEARCH -->
-                <div class="relative w-full">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="search"
+                           id="searchPengungsi"
+                           placeholder="Cari nama pengungsi..."
+                           oninput="searchPengungsi()"
+                           class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-transparent text-sm
+                                  placeholder:text-slate-400
+                                  focus:outline-none focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-500/15 transition">
+                </div>
 
-                    <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <!-- BUTTON -->
+                <button type="button"
+                        onclick="togglePengungsi()"
+                        id="btnPengungsi"
+                        class="shrink-0 inline-flex items-center justify-center gap-2
+                               px-5 py-2.5 rounded-xl
+                               bg-red-600 hover:bg-red-700
+                               text-white text-sm font-bold
+                               shadow-md shadow-red-600/20 transition">
+                    <i id="iconPengungsi" class="fas fa-chevron-down text-[10px]"></i>
+                    <span id="textPengungsi">Lihat Daftar</span>
+                </button>
 
-                    <input type="text"
-                        id="searchPengungsi"
-                        placeholder="Cari nama pengungsi..."
-                        onkeyup="searchPengungsi()"
-                        class="w-full pl-12 pr-5 py-3 rounded-2xl
-                                border border-slate-200
-                                bg-white
-                                text-sm
-                                focus:ring-2 focus:ring-slate-900
-                                focus:border-slate-900">
-
-    </div>
-
-    <!-- BUTTON -->
-    <button onclick="togglePengungsi()"
-            id="btnPengungsi"
-            class="shrink-0 inline-flex items-center gap-3
-                   px-6 py-3 rounded-2xl
-                   bg-slate-900 hover:bg-black
-                   text-white text-sm font-bold
-                   shadow-lg transition-all duration-300">
-
-        <i class="fas fa-users text-xs"></i>
-
-        <span id="textPengungsi">
-            Lihat Daftar
-        </span>
-
-    </button>
-
-</div>
+            </div>
 
 <!-- CONTAINER -->
 <div id="pengungsiContainer"
@@ -842,6 +863,21 @@
 
     </div>
 
+    <!-- KOSONG -->
+    <div id="pengungsiKosong"
+         class="{{ $lokasi->pengungsi->isEmpty() ? '' : 'hidden' }} rounded-2xl border border-dashed border-slate-200 bg-white py-10 text-center">
+        <i class="fas fa-user-slash text-2xl text-slate-300"></i>
+        <p id="pengungsiKosongTeks" class="mt-2 text-sm font-semibold text-slate-500">
+            {{ $lokasi->pengungsi->isEmpty() ? 'Belum ada pengungsi yang terdaftar di posko ini.' : '' }}
+        </p>
+    </div>
+
+</div>
+
+        </div>{{-- /mt-12 --}}
+
+    </div>{{-- /max-w-7xl --}}
+
 </div>
 
 <script>
@@ -851,38 +887,39 @@ function togglePengungsi()
     const container = document.getElementById('pengungsiContainer');
     const text = document.getElementById('textPengungsi');
 
+    const icon = document.getElementById('iconPengungsi');
+
     container.classList.toggle('hidden');
 
-    if(container.classList.contains('hidden'))
-    {
-        text.innerHTML = 'Lihat Daftar';
-    }
-    else
-    {
-        text.innerHTML = 'Sembunyikan';
-    }
+    const tertutup = container.classList.contains('hidden');
+    text.innerHTML = tertutup ? 'Lihat Daftar' : 'Sembunyikan';
+    icon.classList.toggle('rotate-180', !tertutup);
 }
 
 function searchPengungsi()
 {
-    let input = document.getElementById('searchPengungsi').value.toLowerCase();
+    const input = document.getElementById('searchPengungsi').value.trim().toLowerCase();
+    const cards = document.querySelectorAll('.pengungsi-card');
+    const container = document.getElementById('pengungsiContainer');
+    let tampil = 0;
 
-    let cards = document.querySelectorAll('.pengungsi-card');
+    // Mengetik di kolom cari otomatis membuka daftar
+    if (input && container.classList.contains('hidden')) togglePengungsi();
 
     cards.forEach(card => {
-
-        let nama = card.querySelector('.nama-pengungsi').innerText.toLowerCase();
-
-        if(nama.includes(input))
-        {
-            card.style.display = 'block';
-        }
-        else
-        {
-            card.style.display = 'none';
-        }
-
+        const nama = card.querySelector('.nama-pengungsi').innerText.toLowerCase();
+        const cocok = nama.includes(input);
+        card.classList.toggle('hidden', !cocok);
+        if (cocok) tampil++;
     });
+
+    document.getElementById('jumlahTampil').textContent = tampil;
+
+    if (cards.length) {
+        document.getElementById('pengungsiKosong').classList.toggle('hidden', tampil > 0);
+        document.getElementById('pengungsiKosongTeks').textContent = 'Tidak ada pengungsi bernama "' + input + '".';
+    }
 }
 
 </script>
+@endsection

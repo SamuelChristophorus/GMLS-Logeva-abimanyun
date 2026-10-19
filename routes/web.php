@@ -21,6 +21,7 @@ use App\Http\Controllers\User\HomeController;
 use App\Http\Controllers\User\LokasiController as UserLokasiController;
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\PengungsiController;
+use App\Http\Controllers\User\PengungsiImportController;
 
 use App\Http\Controllers\StokMasukController;
 
@@ -68,7 +69,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'index'])->name('pengungsi.index');
     Route::post('/lokasi/{lokasi}/pengungsi',[PengungsiController::class, 'store'])->name('pengungsi.store');
-    Route::post('/pengungsi/import/{lokasi}',[PengungsiController::class, 'import'])->name('pengungsi.import');
+    // Import: unduh template -> upload & pratinjau -> konfirmasi
+    Route::get('/lokasi/{lokasi}/pengungsi/import/template', [PengungsiImportController::class, 'template'])->name('pengungsi.import.template');
+    Route::post('/lokasi/{lokasi}/pengungsi/import/preview', [PengungsiImportController::class, 'preview'])->name('pengungsi.import.preview');
+    Route::post('/lokasi/{lokasi}/pengungsi/import/confirm', [PengungsiImportController::class, 'confirm'])->name('pengungsi.import.confirm');
     Route::get('/pengungsi/export/{lokasi}',[PengungsiController::class, 'export'])->name('pengungsi.export');
     Route::get('/pengungsi/{pengungsi}',[PengungsiController::class, 'show'])->name('pengungsi.show');
     Route::get('/pengungsi/{pengungsi}/edit',[PengungsiController::class, 'edit'])->name('pengungsi.edit');

@@ -1,4 +1,5 @@
-@extends('layouts.admin')
+{{-- Dipakai panel admin (default) dan aplikasi publik (import pengungsi, $layout = layouts.dashboard) --}}
+@extends($layout ?? 'layouts.admin')
 
 @section('title', 'Pratinjau Import ' . $judul)
 

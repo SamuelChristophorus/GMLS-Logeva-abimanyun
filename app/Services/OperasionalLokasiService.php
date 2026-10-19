@@ -89,6 +89,7 @@ class OperasionalLokasiService
             ->leftJoin('kategori_logistiks as k', 'k.id', '=', 'l.kategori_logistik_id')
             ->where('s.lokasi_id', $lokasi->id)
             ->select(
+                'l.id as logistik_id',
                 'l.nama_item',
                 'l.satuan',
                 'l.kebutuhan_harian',

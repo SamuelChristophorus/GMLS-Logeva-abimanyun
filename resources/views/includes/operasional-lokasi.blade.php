@@ -20,7 +20,7 @@
         'merah'  => ['bg-red-50 text-red-700', 'bg-red-500', 'Kritis'],
         'kuning' => ['bg-amber-50 text-amber-700', 'bg-amber-500', 'Menipis'],
         'hijau'  => ['bg-green-50 text-green-700', 'bg-green-500', 'Aman'],
-        'netral' => ['bg-slate-50 text-slate-500', 'bg-slate-300', '-'],
+        'netral' => ['bg-slate-50 text-slate-500', 'bg-slate-300', 'Belum dihitung'],
     ];
 @endphp
 
@@ -194,6 +194,20 @@
             <h3 class="font-bold text-slate-900 mb-1 flex items-center gap-2"><i class="fas fa-calculator text-red-500"></i> Kebutuhan Harian Aktual (SPHERE)</h3>
             <p class="text-xs text-slate-400 mb-4">Dihitung dari {{ $p['total'] }} pengungsi yang tercatat saat ini, bukan dari kapasitas.</p>
 
+            @if ($p['total'] === 0)
+                <div class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <i class="fas fa-circle-info mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold">Belum ada pengungsi yang tercatat di posko ini.</p>
+                        <p class="text-xs text-amber-700 mt-0.5">Kebutuhan air, kalori, toilet, dan logistik dihitung dari jumlah pengungsi, jadi masih 0.
+                            @if ($bisaKelola)
+                                <a href="{{ route('pengungsi.index', $lokasi->id) }}" class="font-bold underline hover:text-amber-900">Tambah data pengungsi &rarr;</a>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div class="rounded-xl bg-sky-50 p-4">
                     <i class="fas fa-droplet text-sky-500"></i>
@@ -239,6 +253,28 @@
             <p class="text-xs text-slate-400">Status: <b class="text-red-600">Kritis</b> &lt; {{ \App\Services\OperasionalLokasiService::BATAS_MERAH }} hari, <b class="text-amber-600">Menipis</b> &lt; {{ \App\Services\OperasionalLokasiService::BATAS_KUNING }} hari.</p>
         </div>
 
+        @php($tanpaKebutuhan = $operasional['stok']->whereNull('kebutuhan_harian'))
+        @if ($operasional['stok']->isNotEmpty() && ($tanpaKebutuhan->isNotEmpty() || $p['total'] === 0))
+            <div class="px-5 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-800 space-y-1">
+                <p class="font-semibold"><i class="fas fa-circle-info mr-1"></i> Daya tahan stok belum bisa dihitung untuk sebagian item karena:</p>
+                <ul class="list-disc pl-5 space-y-0.5">
+                    @if ($p['total'] === 0)
+                        <li>Belum ada pengungsi tercatat (rumus: kebutuhan harian per orang &times; jumlah pengungsi).</li>
+                    @endif
+                    @if ($tanpaKebutuhan->isNotEmpty())
+                        <li>
+                            Kebutuhan harian belum diatur untuk: <b>{{ $tanpaKebutuhan->pluck('nama_item')->join(', ') }}</b>.
+                            @if ($isAdmin)
+                                Atur di <a href="{{ route('admin.logistik.index') }}" class="font-bold underline">Master Logistik</a>.
+                            @else
+                                Minta admin mengaturnya di Master Logistik.
+                            @endif
+                        </li>
+                    @endif
+                </ul>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
@@ -258,7 +294,19 @@
                             <td class="px-5 py-3 font-semibold text-slate-800">{{ $s->nama_item }}</td>
                             <td class="px-5 py-3 text-slate-500">{{ $s->nama_kategori ?? '-' }}</td>
                             <td class="px-5 py-3 text-right">{{ number_format($s->jumlah_stok, 0, ',', '.') }} {{ $s->satuan }}</td>
-                            <td class="px-5 py-3 text-right text-slate-500">{{ $s->kebutuhan_hari_ini ? number_format($s->kebutuhan_hari_ini, 1, ',', '.') . ' ' . $s->satuan : '-' }}</td>
+                            <td class="px-5 py-3 text-right text-slate-500">
+                                @if ($s->kebutuhan_harian === null)
+                                    @if ($isAdmin)
+                                        <a href="{{ route('admin.logistik.edit', $s->logistik_id) }}" class="text-xs font-semibold text-amber-600 hover:underline">Belum diatur</a>
+                                    @else
+                                        <span class="text-xs text-amber-600">Belum diatur</span>
+                                    @endif
+                                @elseif ($s->kebutuhan_hari_ini)
+                                    {{ number_format($s->kebutuhan_hari_ini, 1, ',', '.') }} {{ $s->satuan }}
+                                @else
+                                    <span class="text-xs">0 (belum ada pengungsi)</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-3 text-right font-semibold">{{ $s->cukup_hari !== null ? number_format($s->cukup_hari, 1, ',', '.') . ' hari' : '-' }}</td>
                             <td class="px-5 py-3 text-center">
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $bgBaris }}">

@@ -245,8 +245,11 @@
                             </div>
 
                         </div>
-                        
-                            
+
+                    </div>{{-- /grid --}}
+                </div>{{-- /p-6 --}}
+            </div>{{-- /1. Informasi Dasar --}}
+
             <!-- 2. Dimensi & Kapasitas & Media -->
             <div class="flex flex-col gap-6">
                 
@@ -507,7 +510,6 @@
             
         </form>
     </div>
-</div>
 
 <script>
     function previewFile() {

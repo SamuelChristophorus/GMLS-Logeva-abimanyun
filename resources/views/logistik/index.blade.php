@@ -107,9 +107,6 @@
     </div>
 
 </div>
-<p>{{ $lokasi->kapasitas }}</p>
-{{-- STOK --}}
-<div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden mb-8">
     {{-- STOK --}}
     <div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden mb-8">
 
@@ -425,5 +422,7 @@
     </div>
 
 </div>
+
+</div>{{-- /container --}}
 
 @endsection
