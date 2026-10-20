@@ -71,16 +71,119 @@ class OperasionalLokasiService
     {
         $pengungsi = $this->ringkasanPengungsi($lokasi);
         $stok      = $this->stokLogistik($lokasi, $pengungsi['total']);
+        $bantuan   = $this->susunStatusBantuan($lokasi, $stok, $pengungsi);
+        $medis     = $this->perhatianMedis($lokasi);
+        $keluar    = $this->stokKeluarTerbaru($lokasi);
 
         return [
             'pengungsi'   => $pengungsi,
             'stok'        => $stok,
             'stok_status' => $this->hitungStatus($stok),
             'sphere'      => $this->kebutuhanSphere($pengungsi['total']),
-            'stok_masuk_terbaru' => $this->stokMasukTerbaru($lokasi),
+            'stok_masuk_terbaru'  => $this->stokMasukTerbaru($lokasi),
+            'stok_keluar_terbaru' => $keluar,
+            'perhatian_medis'     => $medis,
+            'tugas'       => $this->tugasHariIni($stok, $pengungsi, $medis, $keluar),
             'hari_ke'     => $lokasi->hariOperasi(),
-            'bantuan'     => $this->susunStatusBantuan($lokasi, $stok, $pengungsi),
+            'bantuan'     => $bantuan,
         ];
+    }
+
+    /**
+     * Daftar tugas relawan untuk hari ini, disusun dari data yang sudah ada.
+     * prioritas: tinggi / sedang / rendah. aksi: tujuan tombol (dipetakan ke route di view).
+     */
+    private function tugasHariIni(Collection $stok, array $pengungsi, Collection $medis, Collection $keluar): Collection
+    {
+        $tugas = collect();
+
+        if ($pengungsi['total'] === 0) {
+            $tugas->push(['prioritas' => 'sedang', 'ikon' => 'fa-user-plus', 'aksi' => 'pengungsi',
+                'teks' => 'Catat data pengungsi di posko ini',
+                'ket'  => 'Kebutuhan logistik dihitung dari jumlah pengungsi, jadi belum bisa dihitung.']);
+        }
+
+        // Barang yang hampir / sudah habis
+        foreach ($stok->where('mendesak', true)->sortBy('cukup_hari') as $s) {
+            $tugas->push(['prioritas' => $s->status === 'merah' ? 'tinggi' : 'sedang', 'ikon' => 'fa-box-open', 'aksi' => 'logistik',
+                'teks' => "Minta kiriman ±{$s->kekurangan} {$s->satuan} {$s->nama_item}",
+                'ket'  => $s->belum_pernah_masuk ? 'Barang ini belum pernah ada di posko.' : self::teksHari($s->cukup_hari, true) . '.']);
+        }
+
+        $sakit = $medis->where('sakit', true)->count();
+        if ($sakit > 0) {
+            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-kit-medical', 'aksi' => 'medis',
+                'teks' => "Periksa kondisi {$sakit} pengungsi yang sedang sakit",
+                'ket'  => 'Pastikan sudah ditangani tenaga kesehatan dan obatnya tersedia.']);
+        }
+
+        if ($pengungsi['persen_isi'] >= self::BATAS_PENUH_PERSEN) {
+            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-people-roof', 'aksi' => null,
+                'teks' => "Kapasitas terisi {$pengungsi['persen_isi']}%, koordinasikan posko cadangan",
+                'ket'  => "Sisa tempat {$pengungsi['sisa_tempat']} orang."]);
+        }
+
+        $rentanKhusus = collect($pengungsi['rentan'])->except('Sakit')->filter();
+        if ($rentanKhusus->isNotEmpty()) {
+            $tugas->push(['prioritas' => 'sedang', 'ikon' => 'fa-person-cane', 'aksi' => 'medis',
+                'teks' => 'Cek kebutuhan khusus ' . $rentanKhusus->sum() . ' pengungsi rentan',
+                'ket'  => $rentanKhusus->map(fn ($j, $k) => "{$k} {$j}")->join(', ') . '.']);
+        }
+
+        if ($pengungsi['total'] > 0 && ! $keluar->contains(fn ($k) => Carbon::parse($k->tanggal_keluar)->isToday())) {
+            $tugas->push(['prioritas' => 'rendah', 'ikon' => 'fa-dolly', 'aksi' => 'keluar',
+                'teks' => 'Catat barang yang dibagikan / dimasak hari ini',
+                'ket'  => 'Belum ada catatan barang keluar hari ini, sisa stok bisa jadi tidak akurat.']);
+        }
+
+        $tanpaKebutuhan = $stok->whereNull('kebutuhan_harian');
+        if ($tanpaKebutuhan->isNotEmpty()) {
+            $tugas->push(['prioritas' => 'rendah', 'ikon' => 'fa-sliders', 'aksi' => 'master',
+                'teks' => 'Atur kebutuhan harian ' . $tanpaKebutuhan->count() . ' barang di Master Logistik',
+                'ket'  => $tanpaKebutuhan->pluck('nama_item')->take(4)->join(', ') . '.']);
+        }
+
+        $urutan = ['tinggi' => 0, 'sedang' => 1, 'rendah' => 2];
+
+        return $tugas->sortBy(fn ($t) => $urutan[$t['prioritas']])->values();
+    }
+
+    /**
+     * Pengungsi yang perlu perhatian medis: sedang sakit (kondisi kesehatan selain "Sehat"),
+     * punya riwayat penyakit, atau termasuk kelompok rentan. Yang sakit di urutan atas.
+     */
+    private function perhatianMedis(Lokasi $lokasi): Collection
+    {
+        $sehat = "LOWER(TRIM(COALESCE(kondisi_kesehatan, ''))) IN ('', '-', 'sehat', 'baik')";
+
+        return DB::table('pengungsis')
+            ->where('lokasi_id', $lokasi->id)
+            ->where(fn ($q) => $q->whereRaw("NOT ({$sehat})")
+                ->orWhere(fn ($q) => $q->whereNotNull('riwayat_penyakit')->where('riwayat_penyakit', '!=', ''))
+                ->orWhere('kelompok_rentan', '!=', 'Tidak'))
+            ->select('id', 'nama', 'usia', 'jenis_kelamin', 'kondisi_kesehatan', 'kelompok_rentan', 'riwayat_penyakit',
+                DB::raw("CASE WHEN {$sehat} THEN 0 ELSE 1 END as sakit"))
+            ->orderByDesc('sakit')
+            ->orderByDesc('usia')
+            ->get()
+            ->map(function ($p) {
+                $p->sakit = (bool) $p->sakit;
+
+                return $p;
+            });
+    }
+
+    private function stokKeluarTerbaru(Lokasi $lokasi): Collection
+    {
+        return DB::table('stok_keluars as k')
+            ->join('logistiks as l', 'l.id', '=', 'k.logistik_id')
+            ->leftJoin('users as u', 'u.id', '=', 'k.user_id')
+            ->where('k.lokasi_id', $lokasi->id)
+            ->select('l.nama_item', 'l.satuan', 'k.jumlah_keluar', 'k.tujuan', 'k.penerima', 'k.tanggal_keluar', 'u.name as petugas')
+            ->orderByDesc('k.tanggal_keluar')
+            ->orderByDesc('k.id')
+            ->limit(5)
+            ->get();
     }
 
     /**

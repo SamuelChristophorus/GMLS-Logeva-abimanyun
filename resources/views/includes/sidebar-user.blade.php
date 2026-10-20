@@ -27,10 +27,6 @@
             <i class="fas fa-campground w-5 text-center"></i> Manajemen Posko
         </a>
 
-        <a href="{{ route('home') }}#statistik" class="{{ $menu(false) }}">
-            <i class="fas fa-chart-column w-5 text-center"></i> Statistik Laporan
-        </a>
-
         {{-- ===== Akun ===== --}}
         <p class="px-2 pt-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Akun</p>
 

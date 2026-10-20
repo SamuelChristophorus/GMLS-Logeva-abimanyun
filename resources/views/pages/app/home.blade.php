@@ -13,10 +13,30 @@
     $statusBantuan = app(\App\Services\OperasionalLokasiService::class)->semuaStatusBantuan();
     $bantuanPer    = $statusBantuan->keyBy(fn ($b) => $b['lokasi']->id);
 
+    // Demografi pengungsi semua posko sekaligus (panel visualisasi di bawah peta)
+    $idLokasi  = $semuaLokasi->pluck('id');
+    $demografi = \Illuminate\Support\Facades\DB::table('pengungsis')
+        ->whereIn('lokasi_id', $idLokasi)
+        ->selectRaw("lokasi_id,
+            SUM(CASE WHEN jenis_kelamin = 'Laki-laki' THEN 1 ELSE 0 END) as laki,
+            SUM(CASE WHEN jenis_kelamin = 'Perempuan' THEN 1 ELSE 0 END) as perempuan")
+        ->groupBy('lokasi_id')
+        ->get()
+        ->keyBy('lokasi_id');
+    $rentanPer = \Illuminate\Support\Facades\DB::table('pengungsis')
+        ->whereIn('lokasi_id', $idLokasi)
+        ->where('kelompok_rentan', '!=', 'Tidak')
+        ->selectRaw('lokasi_id, kelompok_rentan, COUNT(*) as jumlah')
+        ->groupBy('lokasi_id', 'kelompok_rentan')
+        ->get()
+        ->groupBy('lokasi_id');
+    $targetHari = \App\Services\OperasionalLokasiService::targetHari();
+
     // Kondisi posko untuk warna titik di peta publik: hanya beroperasi / tidak beroperasi
-    $petaLokasi = $semuaLokasi->map(function ($l) use ($bantuanPer) {
+    $petaLokasi = $semuaLokasi->map(function ($l) use ($bantuanPer, $demografi, $rentanPer) {
         $kondisi = $l->isBeroperasi() ? 'beroperasi' : 'tidak';
         $b       = $bantuanPer->get($l->id);
+        $d       = $demografi->get($l->id);
 
         return [
             // segera / pantau / cukup / belum (null jika tidak beroperasi)
@@ -37,6 +57,21 @@
             'kondisi'   => $kondisi,
             'hari_ke'   => $l->hariOperasi(),
             'sejak'     => $l->mulai_beroperasi_at?->translatedFormat('d M Y'),
+            // Panel visualisasi
+            'gender'    => ['laki' => (int) ($d->laki ?? 0), 'perempuan' => (int) ($d->perempuan ?? 0)],
+            'rentan'    => ($rentanPer->get($l->id) ?? collect())
+                ->map(fn ($r) => ['nama' => $r->kelompok_rentan, 'jumlah' => (int) $r->jumlah])
+                ->sortByDesc('jumlah')->values(),
+            // Hanya bahan pangan (kategori Makanan & Minuman), paling cepat habis dulu
+            'stok'      => $b ? $b['stok']->whereIn('nama_kategori', ['Makanan', 'Minuman'])
+                ->sortBy(fn ($s) => $s->cukup_hari ?? PHP_INT_MAX)->take(5)
+                ->map(fn ($s) => [
+                    'nama'   => $s->nama_item,
+                    'satuan' => $s->satuan,
+                    'jumlah' => $s->jumlah_stok,
+                    'hari'   => $s->cukup_hari,
+                    'status' => $s->status,
+                ])->values() : [],
         ];
     });
     $jumlahKondisi = $petaLokasi->countBy('kondisi');
@@ -148,9 +183,29 @@
             <div id="map" class="h-[460px] md:h-[560px] w-full rounded-xl border border-slate-200"></div>
             <p class="text-xs text-slate-400">
                 <i class="fas fa-hand-pointer mr-1"></i>
-                Arahkan kursor ke titik untuk melihat ringkasan posko, klik titik untuk membuka halaman detail.
+                Arahkan kursor ke titik untuk melihat ringkasan &amp; visualisasi posko (di bawah peta), klik titik untuk membuka halaman detail.
                 <span class="sm:hidden">Di HP: ketuk sekali untuk ringkasan, ketuk lagi untuk detail.</span>
             </p>
+
+            {{-- Visualisasi kondisi posko yang terakhir di-hover (diisi lewat JS) --}}
+            {{-- Turun (drop down) otomatis saat titik posko di-hover; tetap terbuka sampai ditutup --}}
+            <div id="viz-posko" class="viz-lipat" aria-live="polite">
+                <div class="overflow-hidden">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50">
+                        <div class="flex items-center justify-between gap-3 px-4 py-3">
+                            <span class="text-sm font-semibold text-slate-700">
+                                <i class="fas fa-chart-simple text-red-500 mr-1"></i>
+                                Kondisi Posko: <span id="viz-nama" class="text-slate-900"></span>
+                            </span>
+                            <button type="button" id="viz-tutup" aria-label="Tutup kondisi posko"
+                                    class="w-7 h-7 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition">
+                                <i class="fas fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div id="viz-isi" class="px-4 pb-4"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -216,6 +271,18 @@
     @keyframes tea-denyut { from { transform: scale(.6); opacity: .5; } to { transform: scale(1.6); opacity: 0; } }
     @media (prefers-reduced-motion: reduce) { .tea-marker .tea-denyut { animation: none; } }
     .tea-marker .tea-seru { position: absolute; top: -4px; right: -4px; z-index: 2; }
+
+    /* Panel kondisi posko: animasi turun (tinggi 0 -> isi) saat titik di-hover */
+    .viz-lipat {
+        display: grid; grid-template-rows: 0fr; opacity: 0; transform: translateY(-8px);
+        transition: grid-template-rows .35s ease, opacity .3s ease, transform .35s ease, margin-top .35s ease;
+    }
+    .viz-lipat:not(.buka) { margin-top: 0 !important; }   /* tanpa celah saat tertutup */
+    .viz-lipat.buka { grid-template-rows: 1fr; opacity: 1; transform: none; }
+    /* Ganti posko saat panel sudah terbuka: isi muncul halus */
+    .viz-masuk { animation: viz-masuk .3s ease; }
+    @keyframes viz-masuk { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .viz-lipat, .viz-masuk { transition: none; animation: none; } }
 </style>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -301,6 +368,80 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>`;
     };
 
+    /* ---------- Dropdown kondisi posko (di bawah peta), diisi saat titik di-hover ---------- */
+    const vizNama    = document.getElementById('viz-nama');
+    const vizIsi     = document.getElementById('viz-isi');
+    const targetHari = @json($targetHari);
+    const STOK_WARNA = { merah: 'bg-red-500', kuning: 'bg-amber-500', hijau: 'bg-green-600' };
+    const teksHari   = (h) => h === null ? '-' : h <= 0 ? 'Sudah habis' : h < 1 ? 'Habis hari ini' : Math.floor(h) + ' hari';
+
+    // Batang horizontal sederhana: label kiri, nilai kanan, batang di bawahnya
+    const batang = (label, nilai, persen, warna) => `
+        <div>
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-600 truncate pr-2">${label}</span>
+                <span class="font-semibold text-slate-800 whitespace-nowrap">${nilai}</span>
+            </div>
+            <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full rounded-full ${warna}" style="width:${persen}%"></div>
+            </div>
+        </div>`;
+
+    const kartuViz = (judul, isi) => `
+        <div class="bg-white rounded-lg border border-slate-200 p-3 space-y-2">
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">${judul}</p>
+            ${isi}
+        </div>`;
+    const kosong = (teks) => `<p class="text-xs text-slate-400">${teks}</p>`;
+
+    function vizPengungsi(l) {
+        const persen = l.kapasitas > 0 ? Math.min(100, Math.round(l.pengungsi / l.kapasitas * 100)) : 0;
+        const g      = l.gender;
+        const rentan = l.rentan.reduce((s, r) => s + r.jumlah, 0);
+        return kartuViz('Pengungsi', `
+            ${batang(`Terisi ${persen}%`, `${angka(l.pengungsi)} / ${angka(l.kapasitas)} jiwa`, persen,
+                persen >= 90 ? 'bg-red-500' : persen >= 70 ? 'bg-amber-500' : 'bg-blue-600')}
+            <p class="text-xs text-slate-600">
+                <i class="fas fa-mars text-sky-500"></i> ${angka(g.laki)} laki-laki ·
+                <i class="fas fa-venus text-pink-500"></i> ${angka(g.perempuan)} perempuan
+            </p>
+            <p class="text-xs text-slate-600">
+                <i class="fas fa-hand-holding-heart text-rose-500"></i>
+                ${rentan ? `<b>${angka(rentan)}</b> rentan (${l.rentan.map(r => `${esc(r.nama)} ${r.jumlah}`).join(', ')})`
+                         : 'Tidak ada kelompok rentan'}
+            </p>`);
+    }
+
+    function vizPangan(l) {
+        let isi;
+        if (l.kondisi !== 'beroperasi') isi = kosong('Posko tidak beroperasi, stok tidak dihitung.');
+        else if (!l.stok.length)        isi = kosong('Belum ada data makanan / minuman.');
+        else isi = l.stok.map(s => s.hari === null
+                ? batang(esc(s.nama), `${angka(s.jumlah)} ${esc(s.satuan)}`, 0, 'bg-slate-400')
+                : batang(esc(s.nama), teksHari(s.hari), Math.min(100, s.hari / targetHari * 100), STOK_WARNA[s.status]))
+            .join('') + `<p class="text-[11px] text-slate-400">Batang penuh = cukup ${targetHari} hari</p>`;
+        return kartuViz('Ketahanan Pangan', isi);
+    }
+
+    const vizPanel = document.getElementById('viz-posko');
+    let vizAktif   = null;
+
+    function tampilkanViz(l) {
+        if (vizAktif === l.id && vizPanel.classList.contains('buka')) return;
+        vizAktif = l.id;
+        vizNama.textContent = l.nama;
+        vizIsi.innerHTML = `
+            <div class="viz-masuk">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${vizPengungsi(l)}${vizPangan(l)}</div>
+                <a href="${detailBase}/${l.id}" class="inline-block mt-3 text-xs font-semibold text-red-600 hover:underline">
+                    Lihat detail posko &rarr;
+                </a>
+            </div>`;
+        vizPanel.classList.add('buka');
+    }
+
+    document.getElementById('viz-tutup').addEventListener('click', () => vizPanel.classList.remove('buka'));
+
     const markers = [];
 
     lokasiData.forEach(lokasi => {
@@ -320,6 +461,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Kartu hover (tidak terpotong tepi peta) + klik buka detail: lihat includes/peta-tooltip
         TeaPeta.pasang(map, marker, isiTooltip(lokasi), `${detailBase}/${lokasi.id}`, 16);
+        // Hover / ketuk / hasil pencarian -> panel visualisasi ikut menampilkan posko ini
+        marker.on('tooltipopen', () => tampilkanViz(lokasi));
 
         markers.push({ nama: String(lokasi.nama ?? '').toLowerCase(), kondisi: lokasi.kondisi, marker });
     });

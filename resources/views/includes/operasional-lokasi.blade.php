@@ -204,7 +204,69 @@
             'cukup'  => ['Kebutuhan posko saat ini tercukupi', 'bg-green-100 text-green-800', 'fa-circle-check'],
             'belum'  => ['Kebutuhan belum bisa dihitung',  'bg-slate-100 text-slate-700',    'fa-circle-question'],
         ][$bantuan['tingkat']] ?? null;
+
+        // Tugas & data medis hanya untuk petugas (admin / relawan); nama pengungsi hanya untuk pengelola posko
+        $isPetugas = $isAdmin || (auth()->user()?->hasRole('relawan') ?? false);
+        $medis     = $operasional['perhatian_medis'];
+        $prioritasTugas = [
+            'tinggi' => ['Prioritas tinggi', 'bg-red-100 text-red-700',     'bg-red-500'],
+            'sedang' => ['Sedang',           'bg-amber-100 text-amber-800', 'bg-amber-500'],
+            'rendah' => ['Rutin',            'bg-slate-100 text-slate-600', 'bg-slate-400'],
+        ];
+        // Tombol aksi tugas -> [label, url]; hanya muncul jika pengguna berhak
+        $aksiTugas = fn ($aksi) => match ($aksi) {
+            'logistik'  => $bisaKelola ? ['Catat bantuan masuk', route('logistik.create', $lokasi->id)] : null,
+            'keluar'    => $bisaKelola ? ['Catat barang keluar', route('logistik.keluar', $lokasi->id)] : null,
+            'pengungsi' => $bisaKelola ? ['Tambah pengungsi', route('pengungsi.index', $lokasi->id)] : null,
+            'master'    => $isAdmin ? ['Buka Master Logistik', route('admin.logistik.index')] : null,
+            'medis'     => ['Lihat daftar', '#perhatian-medis'],
+            default     => null,
+        };
     @endphp
+
+    {{-- ================= TUGAS HARI INI (untuk relawan) ================= --}}
+    @if ($isPetugas)
+        <section class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-list-check text-red-500"></i> Tugas Hari Ini
+                    </h3>
+                    <p class="text-xs text-slate-500">Disusun otomatis dari data stok &amp; pengungsi · {{ now()->translatedFormat('l, d M Y') }}</p>
+                </div>
+                @if ($operasional['tugas']->isNotEmpty())
+                    <span class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+                        {{ $operasional['tugas']->count() }} tugas
+                    </span>
+                @endif
+            </div>
+
+            @forelse ($operasional['tugas'] as $t)
+                @php [$lblP, $warnaP, $garisP] = $prioritasTugas[$t['prioritas']]; $aksi = $aksiTugas($t['aksi']); @endphp
+                <div class="relative px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border-b border-slate-100 last:border-0">
+                    <span class="absolute left-0 top-0 bottom-0 w-1 {{ $garisP }}"></span>
+                    <i class="fas {{ $t['ikon'] }} text-slate-400 w-5 text-center hidden sm:block"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-slate-800 text-sm">
+                            {{ $t['teks'] }}
+                            <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $warnaP }}">{{ $lblP }}</span>
+                        </p>
+                        <p class="text-xs text-slate-500">{{ $t['ket'] }}</p>
+                    </div>
+                    @if ($aksi)
+                        <a href="{{ $aksi[1] }}"
+                           class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                            {{ $aksi[0] }} <i class="fas fa-arrow-right text-[10px]"></i>
+                        </a>
+                    @endif
+                </div>
+            @empty
+                <div class="px-5 py-6 text-center text-sm text-green-700">
+                    <i class="fas fa-circle-check mr-1"></i> Tidak ada tugas mendesak. Kondisi posko terpantau aman.
+                </div>
+            @endforelse
+        </section>
+    @endif
 
     {{-- ================= KEBUTUHAN BANTUAN (untuk donatur) ================= --}}
     <section id="kebutuhan-bantuan" class="scroll-mt-24 bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
@@ -406,20 +468,129 @@
                 </div>
             </div>
 
-            <h4 class="font-bold text-slate-900 mt-6 mb-3 text-sm">Bantuan Masuk Terakhir</h4>
-            @forelse ($operasional['stok_masuk_terbaru'] as $m)
-                <div class="flex items-center justify-between text-sm py-2 border-b border-slate-100 last:border-0">
-                    <div>
-                        <p class="font-semibold text-slate-800">+{{ $m->jumlah_masuk }} {{ $m->satuan }} {{ $m->nama_item }}</p>
-                        <p class="text-xs text-slate-400">{{ $m->sumber_bantuan }}</p>
-                    </div>
-                    <span class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($m->tanggal_masuk)->translatedFormat('d M Y') }}</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-3 text-sm">
+                        <i class="fas fa-arrow-down text-green-600 mr-1"></i> Bantuan Masuk Terakhir
+                    </h4>
+                    @forelse ($operasional['stok_masuk_terbaru'] as $m)
+                        <div class="flex items-center justify-between gap-3 text-sm py-2 border-b border-slate-100 last:border-0">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-green-700">+{{ $m->jumlah_masuk }} {{ $m->satuan }} <span class="text-slate-800">{{ $m->nama_item }}</span></p>
+                                <p class="text-xs text-slate-400 truncate">{{ $m->sumber_bantuan }}</p>
+                            </div>
+                            <span class="text-xs text-slate-500 shrink-0">{{ \Carbon\Carbon::parse($m->tanggal_masuk)->translatedFormat('d M Y') }}</span>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-400">Belum ada bantuan masuk.</p>
+                    @endforelse
                 </div>
-            @empty
-                <p class="text-sm text-slate-400">Belum ada bantuan masuk.</p>
-            @endforelse
+
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-bold text-slate-900 text-sm">
+                            <i class="fas fa-arrow-up text-orange-500 mr-1"></i> Barang Keluar Terakhir
+                        </h4>
+                        @if ($bisaKelola)
+                            <a href="{{ route('logistik.keluar', $lokasi->id) }}" class="text-xs font-semibold text-red-600 hover:underline">+ Catat</a>
+                        @endif
+                    </div>
+                    @forelse ($operasional['stok_keluar_terbaru'] as $k)
+                        <div class="flex items-center justify-between gap-3 text-sm py-2 border-b border-slate-100 last:border-0">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-orange-600">&minus;{{ $k->jumlah_keluar }} {{ $k->satuan }} <span class="text-slate-800">{{ $k->nama_item }}</span></p>
+                                <p class="text-xs text-slate-400 truncate">
+                                    <i class="fas {{ \App\Models\StokKeluar::TUJUAN[$k->tujuan][1] ?? 'fa-ellipsis' }} mr-0.5"></i>
+                                    {{ \App\Models\StokKeluar::TUJUAN[$k->tujuan][0] ?? ucfirst($k->tujuan) }}
+                                    {{-- Nama penerima & petugas hanya untuk pengelola posko --}}
+                                    @if ($bisaKelola && ($k->penerima || $k->petugas))
+                                        · {{ $k->penerima ? 'ke ' . $k->penerima : '' }}{{ $k->petugas ? ' oleh ' . $k->petugas : '' }}
+                                    @endif
+                                </p>
+                            </div>
+                            <span class="text-xs text-slate-500 shrink-0">{{ \Carbon\Carbon::parse($k->tanggal_keluar)->translatedFormat('d M Y') }}</span>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-400">Belum ada barang keluar tercatat.</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
     </div>
+
+    {{-- ================= PERLU PERHATIAN MEDIS (untuk relawan) ================= --}}
+    @if ($isPetugas)
+        <section id="perhatian-medis" class="scroll-mt-24 bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-kit-medical text-red-500"></i> Pengungsi Perlu Perhatian Medis
+                    </h3>
+                    <p class="text-xs text-slate-500">Sedang sakit, punya riwayat penyakit, atau termasuk kelompok rentan.</p>
+                </div>
+                <div class="flex gap-2 text-xs font-bold">
+                    <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700">{{ $medis->where('sakit', true)->count() }} sakit</span>
+                    <span class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700">{{ $medis->where('sakit', false)->count() }} perlu dipantau</span>
+                </div>
+            </div>
+
+            @if ($medis->isEmpty())
+                <p class="px-5 py-6 text-center text-sm text-green-700"><i class="fas fa-circle-check mr-1"></i> Tidak ada pengungsi yang perlu perhatian medis.</p>
+            @elseif (! $bisaKelola)
+                {{-- Relawan lain hanya melihat jumlah, bukan nama (data kesehatan bersifat pribadi) --}}
+                <p class="px-5 py-4 text-sm text-slate-500">
+                    <i class="fas fa-lock mr-1 text-slate-400"></i>
+                    Nama dan kondisi pengungsi hanya dapat dilihat oleh relawan penanggung jawab posko dan admin.
+                </p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                            <tr>
+                                <th class="text-left px-5 py-3">Nama</th>
+                                <th class="text-left px-5 py-3">Usia / JK</th>
+                                <th class="text-left px-5 py-3">Kondisi Saat Ini</th>
+                                <th class="text-left px-5 py-3">Riwayat Penyakit</th>
+                                <th class="text-left px-5 py-3">Kelompok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($medis->take(10) as $m)
+                                <tr class="border-t border-slate-100 {{ $m->sakit ? 'bg-red-50/40' : '' }}">
+                                    <td class="px-5 py-3">
+                                        <a href="{{ route('pengungsi.show', $m->id) }}" class="font-semibold text-slate-800 hover:text-red-600 hover:underline">{{ $m->nama }}</a>
+                                    </td>
+                                    <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{{ $m->usia }} th · {{ $m->jenis_kelamin === 'Laki-laki' ? 'L' : 'P' }}</td>
+                                    <td class="px-5 py-3">
+                                        @if ($m->sakit)
+                                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                                <i class="fas fa-temperature-high text-[10px]"></i> {{ $m->kondisi_kesehatan }}
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-slate-500">{{ $m->kondisi_kesehatan ?: '-' }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-5 py-3 text-xs text-slate-600">{{ $m->riwayat_penyakit ?: '-' }}</td>
+                                    <td class="px-5 py-3">
+                                        @if ($m->kelompok_rentan !== 'Tidak')
+                                            <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">{{ $m->kelompok_rentan }}</span>
+                                        @else
+                                            <span class="text-xs text-slate-400">-</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @if ($medis->count() > 10)
+                    <a href="{{ route('pengungsi.index', $lokasi->id) }}" class="block px-5 py-3 border-t border-slate-100 text-xs font-semibold text-red-600 hover:bg-slate-50">
+                        Lihat semua {{ $medis->count() }} pengungsi &rarr;
+                    </a>
+                @endif
+            @endif
+        </section>
+    @endif
 
     {{-- Tabel stok logistik --}}
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
