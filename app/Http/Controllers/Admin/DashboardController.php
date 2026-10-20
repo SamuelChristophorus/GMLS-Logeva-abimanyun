@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Interfaces\LokasiRepositoryInterface;
 use App\Models\Lokasi;
+use App\Services\OperasionalLokasiService;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -79,8 +80,37 @@ class DashboardController extends Controller
         // Antrean laporan yang menunggu persetujuan
         $laporanPending = $this->lokasiRepository->getLokasiByStatus('pending')->take(5);
 
+        // Posko beroperasi yang butuh bantuan (panel + penanda di peta)
+        $statusBantuan = app(OperasionalLokasiService::class)->semuaStatusBantuan();
+        $bantuanPer    = $statusBantuan->keyBy(fn ($b) => $b['lokasi']->id);
+
+        // Titik di peta admin (semua lokasi, termasuk yang ditolak)
+        $petaAdmin = Lokasi::with(['latestStatusView', 'desa', 'permintaanMenunggu'])
+            ->withCount('pengungsi')
+            ->get()
+            ->map(fn ($l) => [
+                'bantuan'     => $bantuanPer->get($l->id)['tingkat'] ?? null,
+                'butuh'       => ($b = $bantuanPer->get($l->id))
+                    ? $b['kebutuhan']->filter->mendesak->take(3)->map(fn ($k) => ['nama' => $k->nama_item, 'jumlah' => $k->kekurangan, 'satuan' => $k->satuan])->values()
+                    : [],
+                'id'          => $l->id,
+                'nama'        => $l->nama_lokasi,
+                'alamat'      => $l->alamat_lokasi,
+                'desa'        => $l->desa->nama_desa ?? null,
+                'latitude'    => $l->latitude,
+                'longitude'   => $l->longitude,
+                'kapasitas'   => (int) $l->kapasitas_pengungsi,
+                'luas'        => (float) $l->luas_lokasi,
+                'pengungsi'   => $l->pengungsi_count,
+                'status'      => optional($l->latestStatusView)->status ?? 'pending',
+                'operasional' => $l->status_operasional ?? Lokasi::OPS_SIAGA,
+                'hari_ke'     => $l->hariOperasi(),
+                'permintaan'  => $l->permintaanMenunggu?->labelAksi(),
+            ])
+            ->values();
+
         return view('pages.admin.dashboard', compact(
-            'persetujuan', 'operasional', 'keterisian', 'trenLaporan', 'usia', 'ringkasan', 'laporanPending'
+            'persetujuan', 'operasional', 'keterisian', 'trenLaporan', 'usia', 'ringkasan', 'laporanPending', 'petaAdmin', 'statusBantuan'
         ));
     }
 }

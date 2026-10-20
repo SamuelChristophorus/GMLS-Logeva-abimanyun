@@ -224,7 +224,36 @@
             @endif
 
             {{-- OPERASIONAL POSKO --}}
-            @if ($status === 'approved')
+            @if ($status === 'approved' && ! $isAdmin)
+            {{-- Relawan: tidak bisa mengubah status sendiri, hanya mengajukan ke admin --}}
+            @php $aksiAju = $lokasi->isBeroperasi() ? 'tutup' : 'mulai'; @endphp
+            <div class="px-5 pb-3 space-y-2">
+                @if ($lokasi->isBeroperasi())
+                    <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-bold">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Beroperasi hari ke-{{ $lokasi->hariOperasi() }}
+                    </div>
+                @endif
+
+                @if ($lokasi->permintaanMenunggu)
+                    <div class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold text-center">
+                        <i class="fas fa-hourglass-half"></i>
+                        Permintaan {{ $lokasi->permintaanMenunggu->labelAksi() }} menunggu keputusan admin
+                    </div>
+                @else
+                    <form method="POST" action="{{ route('lokasi.permintaan-operasional', $lokasi->id) }}"
+                          onsubmit="return confirm('{{ $aksiAju === 'mulai' ? 'Ajukan permintaan MULAI operasi ke admin?' : 'Ajukan permintaan PENUTUPAN operasi ke admin?' }}')">
+                        @csrf
+                        <input type="hidden" name="aksi" value="{{ $aksiAju }}">
+                        <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold {{ $aksiAju === 'mulai' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white border border-red-200 text-red-700 hover:bg-red-50' }}">
+                            <i class="fas {{ $aksiAju === 'mulai' ? 'fa-paper-plane' : 'fa-stop' }}"></i>
+                            {{ $aksiAju === 'mulai' ? 'Ajukan Mulai Operasi' : 'Ajukan Penutupan Operasi' }}
+                        </button>
+                    </form>
+                @endif
+            </div>
+            @elseif ($status === 'approved')
+            {{-- Admin: ubah status operasional langsung --}}
             <div class="px-5 pb-3">
                 <form method="POST" action="{{ route('lokasi.operasional', $lokasi->id) }}"
                       onsubmit="return confirm('{{ $lokasi->isBeroperasi() ? 'Tutup operasi posko ini?' : 'Mulai operasi posko ini?' }}')">

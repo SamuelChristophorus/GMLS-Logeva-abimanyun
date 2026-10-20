@@ -31,11 +31,8 @@
                    @keydown.enter="window.dispatchEvent(new CustomEvent('tea-search', { detail: $event.target.value }))">
         </label>
 
-        {{-- Notifikasi --}}
-        <button class="w-10 h-10 rounded-full border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 flex items-center justify-center"
-                title="Notifikasi">
-            <i class="far fa-bell"></i>
-        </button>
+        {{-- Notifikasi (hanya saat login) --}}
+        @include('includes.notifikasi')
 
         @auth
             {{-- Dropdown profil --}}

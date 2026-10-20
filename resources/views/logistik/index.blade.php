@@ -79,12 +79,13 @@
     </div>
 
     <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-        <p class="text-sm text-blue-600 font-semibold"><i class="fas fa-hourglass-half mr-1"></i> Rata-rata Bertahan</p>
+        <p class="text-sm text-blue-600 font-semibold"><i class="fas fa-hourglass-half mr-1"></i> Paling Cepat Habis</p>
         <h2 class="text-3xl font-bold text-blue-700 mt-2">
-            {{ $rataHariBertahan !== null ? number_format($rataHariBertahan, 1, ',', '.') : '-' }}
-            <span class="text-base font-semibold">hari</span>
+            {{ $palingCepatHabis ? \App\Services\OperasionalLokasiService::teksHari($palingCepatHabis->cukup_hari) : '-' }}
         </h2>
-        <p class="text-xs text-blue-500 mt-1">Untuk {{ $jumlahPengungsi }} pengungsi tercatat</p>
+        <p class="text-xs text-blue-500 mt-1">
+            {{ $palingCepatHabis ? $palingCepatHabis->nama_item . ' · untuk ' . $jumlahPengungsi . ' pengungsi tercatat' : 'Untuk ' . $jumlahPengungsi . ' pengungsi tercatat' }}
+        </p>
     </div>
 
 </div>
@@ -134,6 +135,7 @@
                         <th class="text-right px-6 py-4">Stok</th>
                         <th class="text-right px-6 py-4">Kebutuhan/Hari</th>
                         <th class="text-right px-6 py-4">Cukup Untuk</th>
+                        <th class="text-right px-6 py-4">Perlu Dikirim<span class="block text-[10px] font-medium normal-case text-slate-400">untuk {{ \App\Services\OperasionalLokasiService::targetHari() }} hari</span></th>
                         <th class="text-center px-6 py-4">Status</th>
                         @if ($bisaKelola)
                             <th class="px-6 py-4"><span class="sr-only">Aksi</span></th>
@@ -142,12 +144,13 @@
                 </thead>
                 <tbody>
                     @forelse ($stok as $s)
-                        @php([$bgBaris, $dot, $teks] = $warnaStok[$s->status])
+                        @php [$bgBaris, $dot, $teks] = $warnaStok[$s->status]; @endphp
                         <tr class="border-t border-slate-100 hover:bg-slate-50 transition">
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $s->nama_item }}</td>
                             <td class="px-6 py-4 text-slate-500">{{ $s->nama_kategori ?? '-' }}</td>
                             <td class="px-6 py-4 text-right font-bold text-slate-800">
                                 {{ number_format($s->jumlah_stok, 0, ',', '.') }} {{ $s->satuan }}
+                                @if ($s->belum_pernah_masuk)<span class="block text-[11px] font-medium text-red-600">belum pernah ada</span>@endif
                             </td>
                             <td class="px-6 py-4 text-right text-slate-500">
                                 @if ($s->kebutuhan_harian === null)
@@ -163,7 +166,16 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right font-semibold">
-                                {{ $s->cukup_hari !== null ? number_format($s->cukup_hari, 1, ',', '.') . ' hari' : '-' }}
+                                {{ \App\Services\OperasionalLokasiService::teksHari($s->cukup_hari) }}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                @if ($s->perlu_dikirim)
+                                    <span class="font-bold {{ $s->mendesak ? 'text-red-600' : 'text-slate-800' }}">±{{ number_format($s->kekurangan, 0, ',', '.') }} {{ $s->satuan }}</span>
+                                @elseif ($s->kekurangan === 0)
+                                    <span class="text-xs font-semibold text-green-700">Cukup</span>
+                                @else
+                                    <span class="text-slate-400">-</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $bgBaris }}">
@@ -183,7 +195,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $bisaKelola ? 7 : 6 }}" class="px-6 py-8 text-center text-slate-400">
+                            <td colspan="{{ $bisaKelola ? 8 : 7 }}" class="px-6 py-8 text-center text-slate-400">
                                 Belum ada stok logistik di posko ini.
                             </td>
                         </tr>
@@ -220,7 +232,7 @@
 
     <ul class="divide-y divide-slate-100">
         @forelse ($riwayat as $r)
-            @php($masuk = $r->jenis === 'masuk')
+            @php $masuk = $r->jenis === 'masuk'; @endphp
             <li class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition"
                 x-show="tab === 'semua' || tab === '{{ $r->jenis }}'">
 

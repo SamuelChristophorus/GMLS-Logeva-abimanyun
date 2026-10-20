@@ -35,12 +35,9 @@
         <p class="px-2 pt-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Akun</p>
 
         @auth
-            <a href="{{ route('lokasi.mylokasi') }}" class="{{ $menu(request()->routeIs('lokasi.mylokasi')) }}">
+            {{-- Tambah Lokasi dibuka dari tombol di halaman Laporanmu --}}
+            <a href="{{ route('lokasi.mylokasi') }}" class="{{ $menu(request()->routeIs('lokasi.mylokasi', 'lokasi.create')) }}">
                 <i class="fas fa-clipboard-list w-5 text-center"></i> Laporanmu
-            </a>
-
-            <a href="{{ route('lokasi.create') }}" class="{{ $menu(request()->routeIs('lokasi.create')) }}">
-                <i class="fas fa-location-dot w-5 text-center"></i> Tambah Lokasi
             </a>
         @else
             <a href="{{ route('login') }}" class="{{ $menu(request()->routeIs('login')) }}">

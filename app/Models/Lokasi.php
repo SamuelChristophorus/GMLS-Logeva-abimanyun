@@ -74,6 +74,18 @@ class Lokasi extends Model
         return $this->hasMany(Pengungsi::class);
     }
 
+    public function permintaanOperasional()
+    {
+        return $this->hasMany(PermintaanOperasional::class);
+    }
+
+    /** Permintaan mulai/tutup operasi dari relawan yang belum diproses admin (maks. satu). */
+    public function permintaanMenunggu()
+    {
+        return $this->hasOne(PermintaanOperasional::class)
+            ->ofMany(['id' => 'max'], fn ($q) => $q->where('status', PermintaanOperasional::MENUNGGU));
+    }
+
     public function latestStatus()
     {
         return $this->hasOne(StatusLokasi::class)

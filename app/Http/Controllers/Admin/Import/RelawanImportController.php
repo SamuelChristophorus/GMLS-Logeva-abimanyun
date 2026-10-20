@@ -22,7 +22,7 @@ class RelawanImportController extends BaseImportController
     /** Password awal relawan hasil import. Bisa diubah lewat .env: IMPORT_RELAWAN_PASSWORD=... */
     public static function passwordDefault(): string
     {
-        return env('IMPORT_RELAWAN_PASSWORD', 'relawan123');
+        return config('logeva.import_relawan_password', 'relawan123');
     }
 
     public const AVATAR_DEFAULT = 'assets/default/avatar.png';

@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // WIB. Jika diubah, jam yang sudah tersimpan di database ikut bergeser
+    // (lihat migration 2026_10_20_100000_geser_waktu_ke_wib).
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------

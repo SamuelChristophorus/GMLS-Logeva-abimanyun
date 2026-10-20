@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRelawanRequest;
 use App\Interfaces\RelawanRepositoryInterface;
+use App\Support\Upload;
 
 class RegisterController extends Controller
 {
@@ -25,19 +26,8 @@ class RegisterController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('avatar')) {
-            $file = $request->file('avatar');
-
-            $filename = time().'_'.$file->getClientOriginalName();
-
-            $destinationPath = base_path('../logeva/storage/assets/avatar');
-
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $filename);
-
-            $data['avatar'] = 'assets/avatar/'.$filename;
+            // Disimpan ke <folder public>/storage/assets/avatar (otomatis benar di localhost & Hostinger)
+            $data['avatar'] = Upload::simpan($request->file('avatar'), 'assets/avatar');
         }
 
         $this->relawanRepository->createRelawan($data);

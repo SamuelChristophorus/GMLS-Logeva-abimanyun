@@ -147,6 +147,17 @@
                                         <i class="fas fa-edit text-xs"></i>
                                     </a>
 
+                                    {{-- Reset password HANYA untuk relawan di baris ini --}}
+                                    <form action="{{ route('admin.relawan.reset-password', $relawan->id) }}" method="POST" class="inline-block m-0"
+                                          onsubmit="return confirm({{ Js::from('Reset password ' . ($relawan->user->name ?? '-') . ' (' . ($relawan->user->email ?? '-') . ') menjadi "' . \App\Http\Controllers\Admin\Import\RelawanImportController::passwordDefault() . '"?' . "\n\n" . 'Hanya akun ini yang direset. Relawan akan diminta membuat password baru saat login.') }});">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center hover:bg-violet-600 hover:text-white transition-colors border border-violet-100"
+                                                title="Reset password ke {{ \App\Http\Controllers\Admin\Import\RelawanImportController::passwordDefault() }}">
+                                            <i class="fas fa-key text-xs"></i>
+                                        </button>
+                                    </form>
+
                                     <form action="{{ route('admin.relawan.destroy', $relawan->id) }}" method="POST" class="inline-block m-0" onsubmit="return confirm('Anda yakin ingin mencabut akses dan menghapus relawan ini secara permanen?');">
                                         @csrf
                                         @method('DELETE')

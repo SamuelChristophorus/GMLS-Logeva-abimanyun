@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Support\Upload;
 use App\Models\Pengungsi;
 use App\Models\Lokasi;
 use Illuminate\Http\Request;
@@ -56,8 +57,7 @@ class PengungsiController extends Controller
         $fotoPath = null;
 
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')
-                ->store('pengungsi', 'public');
+            $fotoPath = Upload::simpan($request->file('foto'), 'assets/pengungsi');
         }
 
         Pengungsi::create([
@@ -135,8 +135,7 @@ class PengungsiController extends Controller
         ]);
 
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')
-                ->store('pengungsi', 'public');
+            $fotoPath = Upload::simpan($request->file('foto'), 'assets/pengungsi');
 
             $pengungsi->foto = $fotoPath;
         }

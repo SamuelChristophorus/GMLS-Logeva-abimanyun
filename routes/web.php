@@ -24,6 +24,8 @@ use App\Http\Controllers\User\PengungsiController;
 use App\Http\Controllers\User\PengungsiImportController;
 
 use App\Http\Controllers\StokMasukController;
+use App\Http\Controllers\PermintaanOperasionalController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\StokKeluarController;
 
 /*
@@ -46,9 +48,19 @@ Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.s
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
+    // Ubah status operasional posko: KHUSUS ADMIN (dicek di controller)
     Route::patch('/lokasi/{lokasi}/operasional', [\App\Http\Controllers\OperasionalLokasiController::class, 'update'])
         ->name('lokasi.operasional');
+
+    // Relawan mengajukan mulai / tutup operasi ke admin
+    Route::post('/lokasi/{lokasi}/permintaan-operasional', [PermintaanOperasionalController::class, 'store'])
+        ->name('lokasi.permintaan-operasional');
+
+    // Notifikasi (ikon lonceng)
+    Route::get('/notifikasi/{id}', [NotifikasiController::class, 'buka'])->name('notifikasi.buka');
+    Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('notifikasi.baca-semua');
 
     Route::get('/create-lokasi', [UserLokasiController::class,'create'])->name('lokasi.create');
     Route::post('/create-lokasi', [UserLokasiController::class,'store'])->name('lokasi.store');
@@ -124,6 +136,11 @@ Route::prefix('admin')
         Route::patch('/relawan/{relawan}/suspend', [RelawanController::class, 'suspend'])
             ->name('relawan.suspend');
 
+        // Reset password SATU relawan ke password awal (relawan123)
+        Route::patch('/relawan/{relawan}/reset-password', [RelawanController::class, 'resetPassword'])
+            ->whereNumber('relawan')
+            ->name('relawan.reset-password');
+
         /*
         |--------------------------------------------------------------------------
         | LOKASI
@@ -132,6 +149,12 @@ Route::prefix('admin')
 
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
+
+        // Setujui / tolak permintaan mulai-tutup operasi dari relawan
+        Route::patch('/permintaan-operasional/{permintaan}/setujui', [PermintaanOperasionalController::class, 'setujui'])
+            ->name('permintaan-operasional.setujui');
+        Route::patch('/permintaan-operasional/{permintaan}/tolak', [PermintaanOperasionalController::class, 'tolak'])
+            ->name('permintaan-operasional.tolak');
 
         // Approve / tolak laporan posko
         Route::patch('/lokasi/{lokasi}/verifikasi', [VerifikasiLokasiController::class, 'update'])

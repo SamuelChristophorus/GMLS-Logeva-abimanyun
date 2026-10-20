@@ -278,7 +278,7 @@
                     </div>
                     <div class="flex justify-between items-center p-3 rounded-xl bg-amber-50/50 border border-amber-100">
                         <span class="text-sm font-bold text-slate-700">Telur</span>
-                        <span class="text-sm font-black text-amber-600">{{ round(($lokasi->sphereLokasi->protein / 12.4 * 100 * $lokasi->kapasitas_pengungsi ) / 1000, 2) }} <span class="text-[10px] text-amber-500 font-bold uppercase">kg/hari</span></span>
+                        <span class="text-sm font-black text-amber-600">{{ round(($lokasi->sphereLokasi->protein / 12.4 * 100 ) / 1000, 2) }} <span class="text-[10px] text-amber-500 font-bold uppercase">kg/hari</span></span>
                     </div>
                      <div class="flex justify-between items-center p-3 rounded-xl bg-green-50/50 border border-green-100">
                         <span class="text-sm font-bold text-slate-700">Tahu / Tempe</span>

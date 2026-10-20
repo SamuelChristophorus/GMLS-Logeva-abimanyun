@@ -227,6 +227,9 @@
             </a>
         </div>
 
+        {{-- Posko beroperasi yang butuh bantuan --}}
+        @include('includes.posko-butuh-bantuan', ['statusBantuan' => $statusBantuan, 'admin' => true])
+
         {{-- Status persetujuan & operasional (bar bersegmen) --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @foreach ([
@@ -433,29 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- Load Leaflet CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<style>
-    /* Styling for custom markers and popups */
-    .leaflet-popup-content-wrapper { 
-        padding: 0 !important; 
-        border-radius: 16px !important; 
-        overflow: hidden; 
-        border: 1px solid rgba(0,0,0,0.05); 
-        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15), 0 0 10px rgba(0,0,0,0.05) !important; 
-    }
-    .leaflet-popup-content { margin: 0 !important; }
-    .leaflet-popup-tip-container { display: none; } /* Hide the ugly default tip */
-    .leaflet-container a.leaflet-popup-close-button { 
-        padding: 8px 10px 0 0; 
-        color: #94a3b8; 
-        z-index: 10;
-        text-decoration: none;
-    }
-    .leaflet-container a.leaflet-popup-close-button:hover { 
-        color: #1e293b; 
-        background: transparent;
-    }
-</style>
+@include('includes.peta-tooltip')
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -474,7 +455,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }).addTo(map);
 
     // --- 2. Custom Icon Factory ---
-    function createModernIcon(status) {
+    // bantuan: segera / pantau -> lencana "!" di pojok titik
+    function createModernIcon(status, bantuan = null) {
         let colors = {
             approved: { bg: 'bg-emerald-500', grad: 'from-emerald-400 to-green-600', shadow: 'shadow-green-500/40', ring: 'ring-emerald-200' },
             rejected: { bg: 'bg-rose-500', grad: 'from-rose-400 to-red-600', shadow: 'shadow-red-500/40', ring: 'ring-rose-200' },
@@ -491,85 +473,104 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class='relative w-10 h-10 bg-gradient-to-tr ${theme.grad} rounded-full flex items-center justify-center shadow-lg ${theme.shadow} border-2 border-white transform transition-transform group-hover:scale-110'>
                         <span class="w-3 h-3 bg-white rounded-full opacity-90 shadow-inner"></span>
                     </div>
+                    ${['segera', 'pantau'].includes(bantuan) ? `<span class="tea-seru tea-seru-${bantuan} absolute -top-1 -right-1 z-10" aria-hidden="true">!</span>` : ''}
                 </div>
             `,
             iconSize: [40, 40],
             iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
+            tooltipAnchor: [0, -20]
         });
     }
 
-    // --- 3. Parse Data & Plot Markers ---
-    const rawData = {!! json_encode(\App\Models\Lokasi::with(['statusLokasi', 'desa'])->select('id', 'nama_lokasi', 'alamat_lokasi', 'latitude', 'longitude', 'kapasitas_pengungsi', 'luas_lokasi', 'desa_id')->get()->map(function($item) {
-        $statusRecord = $item->statusLokasi->last();
-        $status = $statusRecord ? $statusRecord->status : 'pending';
-        return [
-            'id' => $item->id,
-            'nama_lokasi' => $item->nama_lokasi,
-            'alamat_lokasi' => $item->alamat_lokasi,
-            'latitude' => $item->latitude,
-            'longitude' => $item->longitude,
-            'kapasitas' => $item->kapasitas_pengungsi,
-            'luas' => $item->luas_lokasi,
-            'desa' => $item->desa ? $item->desa->nama_desa : '-',
-            'status' => $status
-        ];
-    })) !!};
-    
+    // --- 3. Data & titik lokasi (warna = status persetujuan, sesuai filter di atas peta) ---
+    const rawData   = @json($petaAdmin);
+    const kelolaUrl = @json(url('admin/lokasi'));
+    const esc       = TeaPeta.esc;
+
+    const PERSETUJUAN = {
+        approved: { label: 'Disetujui', badge: 'bg-emerald-100 text-emerald-700', ikon: 'fa-circle-check' },
+        pending:  { label: 'Pending',   badge: 'bg-amber-100 text-amber-700',     ikon: 'fa-hourglass-half' },
+        rejected: { label: 'Ditolak',   badge: 'bg-rose-100 text-rose-700',       ikon: 'fa-circle-xmark' },
+    };
+    const OPERASIONAL = {
+        beroperasi: { label: 'Beroperasi',      badge: 'bg-green-600 text-white',     ikon: 'fa-play' },
+        siaga:      { label: 'Siaga',           badge: 'bg-slate-100 text-slate-600', ikon: 'fa-pause' },
+        selesai:    { label: 'Operasi selesai', badge: 'bg-slate-100 text-slate-600', ikon: 'fa-stop' },
+    };
+    const angka = (n) => Number(n || 0).toLocaleString('id-ID');
+    const BANTUAN = {
+        segera: { label: 'Butuh bantuan segera', kotak: 'bg-red-50 border-red-200 text-red-800',       ikon: 'fa-triangle-exclamation' },
+        pantau: { label: 'Perlu dipantau',       kotak: 'bg-amber-50 border-amber-200 text-amber-800', ikon: 'fa-eye' },
+    };
+
+    const isiTooltip = (l) => {
+        const s = PERSETUJUAN[l.status] || PERSETUJUAN.pending;
+        const o = OPERASIONAL[l.operasional] || OPERASIONAL.siaga;
+        const persen = l.kapasitas > 0 ? Math.min(100, Math.round(l.pengungsi / l.kapasitas * 100)) : 0;
+        return `
+            <div class="w-72 bg-white">
+                <div class="px-4 pt-3 pb-2">
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${s.badge}">
+                            <i class="fas ${s.ikon} text-[9px]"></i> ${s.label}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${o.badge}">
+                            <i class="fas ${o.ikon} text-[9px]"></i> ${o.label}${l.operasional === 'beroperasi' && l.hari_ke ? ' · hari ke-' + l.hari_ke : ''}
+                        </span>
+                    </div>
+                    <h3 class="mt-2 font-bold text-slate-900 text-sm leading-snug">${esc(l.nama)}</h3>
+                    ${l.desa ? `<p class="text-[11px] text-slate-500 mt-0.5"><i class="fas fa-map-pin text-slate-300 mr-1"></i>Desa ${esc(l.desa)}</p>` : ''}
+                </div>
+                ${l.permintaan ? `
+                <div class="mx-4 mb-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-800">
+                    <i class="fas fa-bell mr-1"></i> Ada permintaan ${esc(l.permintaan)} dari relawan
+                </div>` : ''}
+                ${BANTUAN[l.bantuan] ? `
+                <div class="mx-4 mb-2 px-3 py-2 rounded-lg border text-[11px] ${BANTUAN[l.bantuan].kotak}">
+                    <p class="font-bold"><i class="fas ${BANTUAN[l.bantuan].ikon} mr-1"></i>${BANTUAN[l.bantuan].label}</p>
+                    ${l.butuh.length ? `<ul class="mt-1 space-y-0.5">${l.butuh.map(b =>
+                        `<li class="flex justify-between gap-2"><span>${esc(b.nama)}</span><b>±${angka(b.jumlah)} ${esc(b.satuan)}</b></li>`).join('')}</ul>` : ''}
+                </div>` : ''}
+                <div class="px-4 pb-3 space-y-2 text-xs text-slate-600">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span><i class="fas fa-users text-slate-400 w-4"></i> Pengungsi</span>
+                            <span class="font-semibold text-slate-800">${angka(l.pengungsi)} / ${angka(l.kapasitas)} jiwa</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full rounded-full ${persen >= 90 ? 'bg-red-500' : persen >= 70 ? 'bg-amber-500' : 'bg-blue-600'}" style="width:${persen}%"></div>
+                        </div>
+                    </div>
+                    <p><i class="fas fa-vector-square text-slate-400 w-4"></i> Luas ${angka(l.luas)} m²</p>
+                </div>
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] font-semibold text-blue-600">
+                    <i class="fas fa-arrow-pointer mr-1"></i> Klik titik untuk kelola data &rarr;
+                </div>
+            </div>`;
+    };
+
     const bounds = L.latLngBounds();
     let hasMarkers = false;
 
     rawData.forEach(lokasi => {
-        if (!lokasi.latitude || !lokasi.longitude) return;
-        
+        const lat = parseFloat(lokasi.latitude);
+        const lng = parseFloat(lokasi.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+
         hasMarkers = true;
-        let lat = parseFloat(lokasi.latitude);
-        let lng = parseFloat(lokasi.longitude);
         bounds.extend([lat, lng]);
 
-        let badgeStyle = '';
-        let statusText = '';
-        if(lokasi.status === 'approved') { badgeStyle = 'bg-emerald-100 text-emerald-700 border-emerald-200'; statusText = 'Disetujui'; }
-        else if(lokasi.status === 'pending') { badgeStyle = 'bg-amber-100 text-amber-700 border-amber-200'; statusText = 'Pending'; }
-        else if(lokasi.status === 'rejected') { badgeStyle = 'bg-rose-100 text-rose-700 border-rose-200'; statusText = 'Ditolak'; }
-        else { badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200'; statusText = 'Selesai'; }
-
-        const popupHTML = `
-            <div class="bg-white min-w-[280px]">
-                <!-- Header -->
-                <div class="p-4 bg-slate-50 border-b border-slate-100 relative">
-                    <span class="absolute top-4 right-8 inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${badgeStyle}">${statusText}</span>
-                    <h3 class="font-black text-slate-800 text-base pr-20 leading-tight mb-1">${lokasi.nama_lokasi}</h3>
-                    <p class="text-[11px] font-semibold text-slate-400 tracking-wide uppercase"><i class="fas fa-map-pin mr-1 text-slate-300"></i> ${lokasi.desa}</p>
-                </div>
-                <!-- Body -->
-                <div class="p-4 space-y-3">
-                    <p class="text-xs text-slate-600 leading-relaxed line-clamp-2" title="${lokasi.alamat_lokasi}">${lokasi.alamat_lokasi}</p>
-                    
-                    <div class="flex gap-2">
-                        <div class="flex-1 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                            <p class="text-[10px] text-slate-400 font-semibold uppercase mb-0.5">Kapasitas</p>
-                            <p class="text-sm font-bold text-slate-800">${lokasi.kapasitas} <span class="text-[10px] font-normal text-slate-500">org</span></p>
-                        </div>
-                        <div class="flex-1 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                            <p class="text-[10px] text-slate-400 font-semibold uppercase mb-0.5">Luas</p>
-                            <p class="text-sm font-bold text-slate-800">${lokasi.luas} <span class="text-[10px] font-normal text-slate-500">m²</span></p>
-                        </div>
-                    </div>
-                    
-                    <a href="{{ url('admin/lokasi') }}/${lokasi.id}" class="mt-2 block w-full text-center bg-black-600 hover:bg-white-700 text-black text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
-                        Kelola Data <i class="fas fa-arrow-right ml-1 opacity-70"></i>
-                    </a>
-                </div>
-            </div>
-        `;
-
         const marker = L.marker([lat, lng], {
-            icon: createModernIcon(lokasi.status),
-            riseOnHover: true
+            icon: createModernIcon(lokasi.status, lokasi.bantuan),
+            title: `${lokasi.nama} (${(PERSETUJUAN[lokasi.status] || PERSETUJUAN.pending).label})`,
+            alt: lokasi.nama,
+            riseOnHover: true,
+            // Posko yang punya permintaan relawan / sedang beroperasi tampil di atas titik lain
+            zIndexOffset: lokasi.bantuan === 'segera' ? 3000 : (lokasi.permintaan ? 2000 : (lokasi.operasional === 'beroperasi' ? 1000 : 0)),
         }).addTo(map);
-        
-        marker.bindPopup(popupHTML);
+
+        // Kartu hover (tidak terpotong tepi peta) + klik buka halaman kelola: lihat includes/peta-tooltip
+        TeaPeta.pasang(map, marker, isiTooltip(lokasi), `${kelolaUrl}/${lokasi.id}`, 20);
     });
 
     // Auto-fit bounds if we have markers

@@ -17,6 +17,9 @@
     <!-- Right: User Dropdown -->
     <div class="ml-auto flex items-center gap-2 sm:gap-4">
 
+        {{-- Notifikasi (permintaan mulai / tutup operasi dari relawan) --}}
+        @include('includes.notifikasi')
+
         <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
         <!-- User Dropdown via Alpine.js -->

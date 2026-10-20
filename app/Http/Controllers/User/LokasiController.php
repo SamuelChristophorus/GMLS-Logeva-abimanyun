@@ -30,7 +30,7 @@ class LokasiController extends Controller
         $this->sphereLokasiRepository = $sphereLokasiRepository;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, OperasionalLokasiService $operasionalService)
     {
         $latitude = $request->latitude;
         $longitude = $request->longitude;
@@ -49,6 +49,10 @@ class LokasiController extends Controller
         // Halaman publik: posko yang ditolak admin tidak ditampilkan
         $lokasis = $lokasis->reject->isDitolak()->values();
 
+        // Status bantuan (segera / pantau / ...) untuk posko yang sedang beroperasi
+        $bantuan = $lokasis->filter->isBeroperasi()
+            ->mapWithKeys(fn ($l) => [$l->id => $operasionalService->statusBantuan($l)['tingkat']]);
+
         $ringkasan = [
             'total'      => $lokasis->count(),
             'beroperasi' => $lokasis->filter->isBeroperasi()->count(),
@@ -56,7 +60,7 @@ class LokasiController extends Controller
             'pengungsi'  => $lokasis->sum('pengungsi_count'),
         ];
 
-        return view('pages.app.lokasi.index', compact('lokasis', 'ringkasan'));
+        return view('pages.app.lokasi.index', compact('lokasis', 'ringkasan', 'bantuan'));
     }
 
     public function myLokasi(Request $request)

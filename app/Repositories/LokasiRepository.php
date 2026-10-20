@@ -101,7 +101,7 @@ class LokasiRepository implements LokasiRepositoryInterface
     */
     public function getLokasiByStatus(string $status, ?int $relawanId = null)
     {
-        return Lokasi::with(['desa', 'statusLokasi', 'relawan.user'])
+        return Lokasi::with(['desa', 'statusLokasi', 'relawan.user', 'permintaanMenunggu'])
             ->when($relawanId, fn ($q) => $q->where('relawan_id', $relawanId))
 
             ->whereHas('statusLokasi', function (Builder $query) use ($status) {

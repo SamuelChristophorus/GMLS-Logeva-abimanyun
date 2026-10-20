@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRelawanRequest;
 use App\Http\Requests\UpdateRelawanRequest;
 use App\Interfaces\RelawanRepositoryInterface;
+use App\Http\Controllers\Admin\Import\RelawanImportController;
+use Illuminate\Support\Facades\Hash;
 use RealRashid\SweetAlert\Facades\Alert as Swal;
 
 class RelawanController extends Controller
@@ -89,6 +91,27 @@ class RelawanController extends Controller
         $this->relawanRepository->deleteRelawan($id);
 
         Swal::toast('Relawan Berhasil Dihapus', 'success')->timerProgressBar();
+
+        return redirect()->route('admin.relawan.index');
+    }
+
+    /**
+     * Mengembalikan password SATU relawan (sesuai $id) ke password awal (default relawan123).
+     * Saat login berikutnya relawan otomatis diminta membuat password baru.
+     */
+    public function resetPassword(string $id)
+    {
+        $relawan = $this->relawanRepository->getRelawanById($id);
+
+        abort_unless($relawan && $relawan->user, 404);
+
+        $relawan->user->password = Hash::make(RelawanImportController::passwordDefault());
+        $relawan->user->save();
+
+        Swal::toast(
+            "Password {$relawan->user->name} direset ke \"" . RelawanImportController::passwordDefault() . '"',
+            'success'
+        )->timerProgressBar();
 
         return redirect()->route('admin.relawan.index');
     }

@@ -11,6 +11,16 @@
         <p class="text-slate-500 mt-2 font-medium">Informasi dan statistik relasi akun Anda di sistem GMLS.</p>
     </div>
 
+    @if (session('ganti_password'))
+        <div class="w-full max-w-2xl mb-6 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-amber-900">
+            <i class="fas fa-shield-halved text-xl mt-0.5"></i>
+            <div>
+                <p class="font-bold">Segera ganti password Anda</p>
+                <p class="text-sm mt-0.5">{{ session('ganti_password') }}</p>
+            </div>
+        </div>
+    @endif
+
     <!-- Profile Card (Glassmorphism) -->
     <div class="w-full max-w-2xl bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative">
         
@@ -68,6 +78,54 @@
                         <h4 class="text-3xl font-black text-slate-800">{{ Auth::user()->relawan && Auth::user()->relawan->lokasi ? Auth::user()->relawan->lokasi->count() : 0 }} <span class="text-base font-bold text-slate-400">Tergabung</span></h4>
                     </div>
                 </div>
+            </div>
+
+            <!-- Ganti Password -->
+            @php $errPass = $errors->getBag('password'); @endphp
+            <div id="ganti-password" class="scroll-mt-24 bg-white border border-slate-100 rounded-2xl p-6 mb-8"
+                 x-data="{ lihat: false }">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800">Ganti Password</h3>
+                        <p class="text-xs text-slate-500">Minimal 8 karakter, berisi huruf dan angka.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ route('profile.password') }}" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+
+                    @foreach ([
+                        'password_lama'         => ['Password lama',          'current-password'],
+                        'password'              => ['Password baru',          'new-password'],
+                        'password_confirmation' => ['Ulangi password baru',   'new-password'],
+                    ] as $nama => [$label, $autocomplete])
+                        <div>
+                            <label for="{{ $nama }}" class="block text-sm font-bold text-slate-700 mb-1">{{ $label }}</label>
+                            <div class="relative">
+                                <input :type="lihat ? 'text' : 'password'" id="{{ $nama }}" name="{{ $nama }}" required
+                                       autocomplete="{{ $autocomplete }}"
+                                       class="w-full h-12 rounded-xl border-2 px-4 pr-12 focus:outline-none focus:border-red-500 {{ $errPass->has($nama) ? 'border-rose-400' : 'border-slate-200' }}">
+                                <button type="button" @click="lihat = !lihat" tabindex="-1"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 text-slate-400 hover:text-slate-600"
+                                        :aria-label="lihat ? 'Sembunyikan password' : 'Tampilkan password'">
+                                    <i class="fas" :class="lihat ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                </button>
+                            </div>
+                            @if ($errPass->has($nama))
+                                <p class="mt-1 text-sm font-semibold text-rose-600"><i class="fas fa-circle-exclamation"></i> {{ $errPass->first($nama) }}</p>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    <button type="submit"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold">
+                        <i class="fas fa-check"></i> Simpan Password Baru
+                    </button>
+                </form>
             </div>
 
             <!-- Logout Section -->

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Admin\Import\RelawanImportController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLoginRequest;
 use App\Interfaces\AuthRepositoryInterface;
@@ -65,6 +66,14 @@ class LoginController extends Controller
             return redirect()->route('login')->withErrors([
                 'email' => 'Akun Anda belum terverifikasi.',
             ]);
+        }
+
+        // Masih memakai password awal hasil import -> minta segera diganti
+        if (hash_equals(RelawanImportController::passwordDefault(), (string) $credentials['password'])) {
+            return redirect()->route('profile')->with(
+                'ganti_password',
+                'Anda masih memakai password awal. Demi keamanan akun, silakan buat password baru di bawah ini.'
+            );
         }
 
         return redirect()->route('home');

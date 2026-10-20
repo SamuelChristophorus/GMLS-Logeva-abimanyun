@@ -87,7 +87,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100/80">
                     @foreach ($baris as $b)
-                        @php([$label, $warna, $ikon] = $badge[$b['status']])
+                        @php [$label, $warna, $ikon] = $badge[$b['status']]; @endphp
                         <tr class="{{ $b['status'] === 'error' ? 'bg-rose-50/40' : '' }} align-top">
                             <td class="py-3 px-4 text-sm font-semibold text-slate-400">{{ $b['row'] }}</td>
                             <td class="py-3 px-4">

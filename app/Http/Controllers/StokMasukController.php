@@ -87,8 +87,8 @@ class StokMasukController extends Controller
         'jumlah_pengungsi' => $jumlahPengungsi,
     ] = $operasionalService->stokPosko($lokasi);
 
-    $terhitung        = $stok->whereNotNull('cukup_hari');
-    $rataHariBertahan = $terhitung->isNotEmpty() ? round($terhitung->avg('cukup_hari'), 1) : null;
+    // Barang yang paling cepat habis (lebih jelas bagi petugas daripada rata-rata semua barang)
+    $palingCepatHabis = $stok->whereNotNull('cukup_hari')->sortBy('cukup_hari')->first();
 
     // Riwayat gabungan barang masuk (+) & keluar (-), terbaru di atas
     $riwayat = StokMasuk::with('logistik')
@@ -130,7 +130,7 @@ class StokMasukController extends Controller
         'stok',
         'stokStatus',
         'jumlahPengungsi',
-        'rataHariBertahan',
+        'palingCepatHabis',
         'riwayat',
         'bisaKelola',
         'isAdmin'

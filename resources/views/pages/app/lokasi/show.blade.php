@@ -11,6 +11,10 @@
         'done'     => ['label' => 'Selesai',   'pill' => 'bg-blue-100 text-blue-700 ring-blue-200',          'dot' => 'bg-blue-400',    'icon_color' => 'text-blue-500',    'tl_bg' => 'bg-blue-50',    'tl_ring' => 'ring-blue-200'],
     ];
     $beroperasi = $lokasi->isBeroperasi();
+    // Angka berpemisah ribuan ala Indonesia: 27360900 -> 27.360.900, 2.5 -> 2,5
+    $angka = fn ($v) => is_numeric($v)
+        ? number_format((float) $v, fmod((float) $v, 1) == 0 ? 0 : 1, ',', '.')
+        : $v;
     $adaSphere  = (bool) $lokasi->sphereLokasi;
     $opsBadge   = $lokasi->labelOperasional();
     $opsPill    = [
@@ -174,10 +178,10 @@
     <div class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
         @php
             $stats = [
-                ['Luas Lokasi',     number_format($lokasi->luas_lokasi),          'm²'],
-                ['Kapasitas',       number_format($lokasi->kapasitas_pengungsi),  'orang'],
-                ['Total Air Harian',number_format($lokasi->sphereLokasi->air_hidup + $lokasi->sphereLokasi->air_kebersihan + $lokasi->sphereLokasi->air_memasak), 'L/hari'],
-                ['Kebutuhan Kalori',number_format($lokasi->sphereLokasi->kalori), 'kCal/hari'],
+                ['Luas Lokasi',     $angka($lokasi->luas_lokasi),          'm²'],
+                ['Kapasitas',       $angka($lokasi->kapasitas_pengungsi),  'orang'],
+                ['Total Air Harian',$angka($lokasi->sphereLokasi->air_hidup + $lokasi->sphereLokasi->air_kebersihan + $lokasi->sphereLokasi->air_memasak), 'L/hari'],
+                ['Kebutuhan Kalori',$angka($lokasi->sphereLokasi->kalori), 'kCal/hari'],
             ];
         @endphp
         @foreach($stats as [$label, $value, $unit])
@@ -232,7 +236,10 @@
                 </div>
                 <div>
                     <h2 class="text-sm font-bold text-slate-800">Kebutuhan Sphere Minimum</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Standar kemanusiaan internasional</p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Total kebutuhan per hari jika posko terisi penuh
+                        ({{ $angka($lokasi->kapasitas_pengungsi) }} orang) · standar kemanusiaan internasional
+                    </p>
                 </div>
             </div>
 
@@ -244,15 +251,14 @@
                         Air
                     </p>
                     @foreach([
-                        ['Kebutuhan Hidup', $lokasi->sphereLokasi->air_hidup,      'L/org/hari', 'Std: 2.5 L'],
-                        ['Kebersihan',      $lokasi->sphereLokasi->air_kebersihan, 'L/org/hari', 'Std: 2 L'],
-                        ['Memasak',         $lokasi->sphereLokasi->air_memasak,    'L/org/hari', 'Std: 3 L'],
+                        ['Kebutuhan Hidup', $lokasi->sphereLokasi->air_hidup,      'L/hari', 'Std: 2,5 L/orang'],
+                        ['Kebersihan',      $lokasi->sphereLokasi->air_kebersihan, 'L/hari', 'Std: 2 L/orang'],
+                        ['Memasak',         $lokasi->sphereLokasi->air_memasak,    'L/hari', 'Std: 3 L/orang'],
                     ] as [$name, $val, $unit, $std])
-                    <div class="bg-blue-50 rounded-xl px-4 py-3">
+                    <div class="bg-blue-50 rounded-xl px-4 py-3 min-w-0">
                         <p class="text-xs font-semibold text-blue-700">{{ $name }}</p>
-                        <p class="text-xl font-extrabold text-blue-800 leading-tight mt-0.5">
-                            {{ $val }}<span class="text-xs font-medium text-blue-500 ml-1">{{ $unit }}</span>
-                        </p>
+                        <p class="text-lg 2xl:text-xl font-extrabold text-blue-800 leading-tight mt-0.5 tabular-nums break-words">{{ $angka($val) }}</p>
+                        <p class="text-xs font-medium text-blue-500">{{ $unit }}</p>
                         <p class="text-xs text-blue-400 mt-0.5">{{ $std }}</p>
                     </div>
                     @endforeach
@@ -268,11 +274,10 @@
                         ['Toilet Jangka Pendek', $lokasi->sphereLokasi->toilet_pendek,  'unit', 'Std: 1 per 50 orang'],
                         ['Toilet Jangka Panjang',$lokasi->sphereLokasi->toilet_panjang, 'unit', 'Std: 1 per 20 orang'],
                     ] as [$name, $val, $unit, $std])
-                    <div class="bg-emerald-50 rounded-xl px-4 py-3">
+                    <div class="bg-emerald-50 rounded-xl px-4 py-3 min-w-0">
                         <p class="text-xs font-semibold text-emerald-700">{{ $name }}</p>
-                        <p class="text-xl font-extrabold text-emerald-800 leading-tight mt-0.5">
-                            {{ $val }}<span class="text-xs font-medium text-emerald-500 ml-1">{{ $unit }}</span>
-                        </p>
+                        <p class="text-lg 2xl:text-xl font-extrabold text-emerald-800 leading-tight mt-0.5 tabular-nums break-words">{{ $angka($val) }}</p>
+                        <p class="text-xs font-medium text-emerald-500">{{ $unit }}</p>
                         <p class="text-xs text-emerald-400 mt-0.5">{{ $std }}</p>
                     </div>
                     @endforeach
@@ -285,15 +290,14 @@
                         Nutrisi
                     </p>
                     @foreach([
-                        ['Kalori',  number_format($lokasi->sphereLokasi->kalori), 'kCal/hari', 'Std: 2100 kCal/orang'],
+                        ['Kalori',  $lokasi->sphereLokasi->kalori, 'kCal/hari', 'Std: 2.100 kCal/orang'],
                         ['Protein', $lokasi->sphereLokasi->protein,               'g/hari',    'Std: 53 g/orang'],
                         ['Lemak',   $lokasi->sphereLokasi->lemak,                 'g/hari',    'Std: 40 g/orang'],
                     ] as [$name, $val, $unit, $std])
-                    <div class="bg-orange-50 rounded-xl px-4 py-3">
+                    <div class="bg-orange-50 rounded-xl px-4 py-3 min-w-0">
                         <p class="text-xs font-semibold text-orange-700">{{ $name }}</p>
-                        <p class="text-xl font-extrabold text-orange-800 leading-tight mt-0.5">
-                            {{ $val }}<span class="text-xs font-medium text-orange-500 ml-1">{{ $unit }}</span>
-                        </p>
+                        <p class="text-lg 2xl:text-xl font-extrabold text-orange-800 leading-tight mt-0.5 tabular-nums break-words">{{ $angka($val) }}</p>
+                        <p class="text-xs font-medium text-orange-500">{{ $unit }}</p>
                         <p class="text-xs text-orange-400 mt-0.5">{{ $std }}</p>
                     </div>
                     @endforeach

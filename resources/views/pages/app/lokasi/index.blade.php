@@ -148,6 +148,16 @@
                                 <i class="fas fa-hourglass-half mr-1"></i> Menunggu verifikasi
                             </span>
                         @endunless
+
+                        @if (($bantuan[$lokasi->id] ?? null) === 'segera')
+                            <span class="absolute bottom-3 left-3 bg-red-600 text-white px-2.5 py-1 rounded-full text-[11px] font-bold shadow">
+                                <i class="fas fa-triangle-exclamation mr-1"></i> Butuh bantuan segera
+                            </span>
+                        @elseif (($bantuan[$lokasi->id] ?? null) === 'pantau')
+                            <span class="absolute bottom-3 left-3 bg-amber-400 text-amber-950 px-2.5 py-1 rounded-full text-[11px] font-bold shadow">
+                                <i class="fas fa-eye mr-1"></i> Perlu dipantau
+                            </span>
+                        @endif
                     </a>
 
                     {{-- Isi --}}
