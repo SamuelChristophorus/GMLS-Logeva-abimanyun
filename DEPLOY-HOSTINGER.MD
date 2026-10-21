@@ -223,3 +223,44 @@ keduanya memakai `Upload::simpan()` seperti upload lain (`storage/assets/pengung
   | Air Mineral | 3 liter (standar air minum SPHERE 2,5–3 L) |
 - Buka halaman Monitoring Lokasi: panel **Posko Butuh Bantuan** harus tampil di atas peta, dan titik posko
   yang kekurangan logistik bertanda **!** merah/kuning.
+
+## 6. Deploy ke InfinityFree (hosting gratis, logeva.wuaze.com)
+
+InfinityFree berbeda dari Hostinger: **hanya boleh upload ke dalam `htdocs`**, **tidak ada SSH/terminal**,
+dan **database tidak bisa diakses dari luar** (`sql200.infinityfree.com` tidak dikenal dari internet),
+jadi `php artisan migrate` dari laptop tidak akan bisa terhubung.
+
+### Struktur folder
+```
+htdocs/                  <- ISI folder public/ (index.php, .htaccess, assets/, storage/, vendor/, favicon.ico, robots.txt)
+htdocs/logeva_app/       <- semua folder & file lain (app, bootstrap, config, database, resources, routes,
+                            storage, vendor, artisan, composer.json, .env)
+```
+`public/index.php` otomatis mengenali `htdocs/logeva_app`. `public/.htaccess` **memblokir** semua akses
+browser ke `logeva_app/` dan ke file berawalan titik (`.env`, `.git`), kecuali `.well-known` (verifikasi SSL).
+
+### Langkah pertama kali
+1. Hapus file bawaan InfinityFree di `htdocs` (misalnya `index2.html`).
+2. Upload sesuai struktur di atas. **Jangan** upload `node_modules/`, `.git/`, `tests/`, dan isi
+   `bootstrap/cache/*.php` (cache dari laptop membuat route lama tetap dipakai).
+   Tips: kompres jadi .zip, lalu pakai **Upload & Unzip** di File Manager.
+3. Upload `.env.production` (ada di folder proyek, tidak ikut git) ke `htdocs/logeva_app/`, lalu **ganti namanya
+   menjadi `.env`**.
+4. Pastikan folder `htdocs/logeva_app/storage/` (dan subfoldernya) serta `htdocs/storage/` bisa ditulis.
+5. Di panel InfinityFree, pilih versi PHP **8.2 atau lebih baru** (Laravel 12 butuh PHP 8.2).
+6. **Data awal**: phpMyAdmin → pilih database `if0_43230528_db_logeva` → Import → pilih file SQL hasil
+   ekspor database localhost (berisi tabel + data + tabel `migrations`).
+7. Cek pengaman: buka `http://logeva.wuaze.com/logeva_app/.env` → **harus 404**. Jika isi file tampil,
+   segera hapus `.env` di server dan periksa `.htaccess` di `htdocs`.
+
+### Migrate berikutnya (tanpa terminal)
+1. Buat & uji migration di laptop, lalu upload file migration baru ke `htdocs/logeva_app/database/migrations/`.
+2. Isi `DEPLOY_TOKEN` di `htdocs/logeva_app/.env` (minimal 32 karakter acak; `.env.production` sudah berisi satu).
+3. Buka **lewat browser** (bukan curl — InfinityFree memblokir akses non-browser):
+   - `http://logeva.wuaze.com/_deploy/<DEPLOY_TOKEN>/status` → `migrate:status`
+   - `http://logeva.wuaze.com/_deploy/<DEPLOY_TOKEN>/migrate` → `migrate --force`
+   - `http://logeva.wuaze.com/_deploy/<DEPLOY_TOKEN>/bersihkan` → `optimize:clear`
+4. **Kosongkan lagi `DEPLOY_TOKEN`** di `.env` server. Selama kosong, alamat `/_deploy/...` selalu 404.
+
+> Jangan pakai route migrate tanpa `--force`: di `APP_ENV=production` Laravel meminta konfirmasi,
+> di browser tidak ada yang menjawab sehingga migrate **dibatalkan diam-diam**.

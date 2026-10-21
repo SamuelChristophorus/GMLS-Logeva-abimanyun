@@ -18,4 +18,8 @@ return [
     // Ubah lewat .env: TARGET_HARI_BANTUAN=...
     'target_hari_bantuan' => (int) env('TARGET_HARI_BANTUAN', 7),
 
+    // Token untuk menjalankan migrate lewat browser di hosting tanpa terminal (DeployController).
+    // Kosong = fitur MATI. Isi sementara saat deploy (minimal 32 karakter acak), lalu kosongkan lagi.
+    'deploy_token' => env('DEPLOY_TOKEN', ''),
+
 ];

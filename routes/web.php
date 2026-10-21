@@ -36,6 +36,11 @@ use App\Http\Controllers\StokKeluarController;
 
 Route::get('/', [HomeController::class,'index'])->name('home');
 
+// Migrate lewat browser untuk hosting tanpa terminal (mati jika DEPLOY_TOKEN kosong)
+Route::get('/_deploy/{token}/{aksi}', \App\Http\Controllers\DeployController::class)
+    ->middleware('throttle:10,1')
+    ->name('deploy');
+
 Route::get('/lokasis', [UserLokasiController::class,'index'])->name('lokasi.index');
 Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.show');
 

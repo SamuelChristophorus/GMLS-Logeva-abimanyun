@@ -5,6 +5,12 @@
 
     RewriteEngine On
 
+    # Pengaman (penting di InfinityFree, tempat aplikasi diletakkan di htdocs/logeva_app):
+    # 1) folder aplikasi tidak boleh dibuka dari browser (berisi .env, kode, vendor)
+    RewriteRule ^logeva_app(/.*)?$ - [R=404,L]
+    # 2) file/folder berawalan titik (.env, .git, ...) tidak boleh dibuka, kecuali .well-known (SSL)
+    RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
