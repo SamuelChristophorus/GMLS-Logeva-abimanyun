@@ -9,10 +9,10 @@ class StokKeluar extends Model
     /** Pilihan "untuk apa barang dikeluarkan": kunci => [label, ikon Font Awesome] */
     public const TUJUAN = [
         'dibagikan'  => ['Dibagikan ke pengungsi',      'fa-hand-holding-heart'],
-        'dapur_umum' => ['Dimasak di dapur umum',       'fa-fire-burner'],
+        'dapur_umum' => ['Dimasak di dapur umum',       'fa-fire'],
         'dikirim'    => ['Dikirim ke posko lain',       'fa-truck'],
-        'rusak'      => ['Rusak / kedaluwarsa / hilang', 'fa-trash-can'],
-        'lainnya'    => ['Lainnya',                     'fa-ellipsis'],
+        'rusak'      => ['Rusak / kedaluwarsa / hilang', 'fa-trash-alt'],
+        'lainnya'    => ['Lainnya',                     'fa-ellipsis-h'],
     ];
 
     protected $fillable = [

@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DesaImportController;
 use App\Http\Controllers\Admin\Import\LogistikImportController;
 use App\Http\Controllers\Admin\Import\RelawanImportController;
 use App\Http\Controllers\Admin\Import\LokasiImportController;
+use App\Http\Controllers\Admin\Import\PaketDataPoskoController;
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -190,6 +191,8 @@ Route::prefix('admin')
 
         Route::get('/logistik/export', [LogistikImportController::class, 'export'])
             ->name('logistik.export');
+        Route::get('/logistik/export-csv', [LogistikImportController::class, 'exportCsv'])
+            ->name('logistik.export.csv');
         Route::get('/logistik/import/template', [LogistikImportController::class, 'template'])
             ->name('logistik.import.template');
         Route::post('/logistik/import/preview', [LogistikImportController::class, 'preview'])
@@ -213,6 +216,23 @@ Route::prefix('admin')
             ->name('lokasi.import.preview');
         Route::post('/lokasi/import/confirm', [LokasiImportController::class, 'confirm'])
             ->name('lokasi.import.confirm');
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORT PAKET DATA POSKO (ZIP dari aplikasi offline, dibawa lewat USB)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/paket-data', [PaketDataPoskoController::class, 'index'])
+            ->name('paket.index');
+        Route::post('/paket-data/preview', [PaketDataPoskoController::class, 'preview'])
+            ->name('paket.preview');
+        Route::post('/paket-data/confirm', [PaketDataPoskoController::class, 'confirm'])
+            ->name('paket.confirm');
+        Route::post('/paket-data/batal', [PaketDataPoskoController::class, 'batal'])
+            ->name('paket.batal');
+        Route::get('/paket-data/selisih-stok', [PaketDataPoskoController::class, 'selisih'])
+            ->name('paket.selisih');
 
         /*
         |--------------------------------------------------------------------------

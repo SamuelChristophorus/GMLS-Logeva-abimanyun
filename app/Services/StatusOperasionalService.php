@@ -134,7 +134,7 @@ class StatusOperasionalService
             pesan:    "Admin menolak permintaan {$permintaan->labelAksi()} posko {$lokasi->nama_lokasi}"
                       . ($catatan ? ". Catatan: {$catatan}" : '.'),
             url:      route('lokasi.show', $lokasi->id),
-            ikon:     'fa-circle-xmark',
+            ikon:     'fa-times-circle',
             warna:    'red',
             lokasiId: $lokasi->id,
         ));
@@ -174,7 +174,7 @@ class StatusOperasionalService
         [$judul, $pesan, $ikon, $warna] = match ($aksi) {
             'mulai' => ['Posko mulai beroperasi', "Admin telah memulai operasi posko {$lokasi->nama_lokasi}.", 'fa-play', 'green'],
             'tutup' => ['Operasi posko ditutup', "Admin telah menutup operasi posko {$lokasi->nama_lokasi}.", 'fa-stop', 'slate'],
-            'siaga' => ['Posko kembali siaga', "Admin mengembalikan posko {$lokasi->nama_lokasi} ke status siaga.", 'fa-rotate-left', 'blue'],
+            'siaga' => ['Posko kembali siaga', "Admin mengembalikan posko {$lokasi->nama_lokasi} ke status siaga.", 'fa-undo-alt', 'blue'],
         };
 
         if ($dariPermintaan) {

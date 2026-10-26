@@ -7,6 +7,7 @@ use App\Support\Upload;
 use App\Models\Pengungsi;
 use App\Models\Lokasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Exports\PengungsiExport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -46,7 +47,8 @@ class PengungsiController extends Controller
             'nama' => 'required',
             'asal' => 'required',
             'tanggal_lahir' => 'required|date',
-            'nomor_kk' => 'required',
+            // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
+            'nomor_kk' => 'nullable|digits:16',
             'usia' => 'required|integer',
             'jenis_kelamin' => 'required',
             'kondisi_kesehatan' => 'nullable',
@@ -69,8 +71,9 @@ class PengungsiController extends Controller
             'nomor_kk' => $request->nomor_kk,
             'usia' => $request->usia,
             'jenis_kelamin' => $request->jenis_kelamin,
-            'kondisi_kesehatan' => $request->kondisi_kesehatan,
-            'kelompok_rentan' => $request->kelompok_rentan,
+            // Kosong = Sehat / Tidak (aturan website; kolom database wajib terisi)
+            'kondisi_kesehatan' => $request->kondisi_kesehatan ?: 'Sehat',
+            'kelompok_rentan' => $request->kelompok_rentan ?: 'Tidak',
             'riwayat_penyakit' => $request->riwayat_penyakit
         ]);
 
@@ -129,7 +132,8 @@ class PengungsiController extends Controller
             'nama' => 'required',
             'asal' => 'required',
             'tanggal_lahir' => 'required|date',
-            'nomor_kk' => 'required',
+            // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
+            'nomor_kk' => 'nullable|digits:16',
             'usia' => 'required|integer',
             'jenis_kelamin' => 'required'
         ]);
@@ -146,8 +150,8 @@ class PengungsiController extends Controller
         $pengungsi->nomor_kk = $request->nomor_kk;
         $pengungsi->usia = $request->usia;
         $pengungsi->jenis_kelamin = $request->jenis_kelamin;
-        $pengungsi->kondisi_kesehatan = $request->kondisi_kesehatan;
-        $pengungsi->kelompok_rentan = $request->kelompok_rentan;
+        $pengungsi->kondisi_kesehatan = $request->kondisi_kesehatan ?: 'Sehat';
+        $pengungsi->kelompok_rentan = $request->kelompok_rentan ?: 'Tidak';
         $pengungsi->riwayat_penyakit = $request->riwayat_penyakit;
 
         $pengungsi->save();
@@ -174,6 +178,15 @@ class PengungsiController extends Controller
         $pengungsi = Pengungsi::findOrFail($id);
 
         $lokasi = $pengungsi->lokasi_id;
+
+        // Pengungsi dari Paket Data Posko: catat kodenya supaya paket lama yang
+        // diimpor belakangan tidak memunculkan lagi data yang sudah dihapus.
+        if ($pengungsi->kode) {
+            DB::table('paket_penghapusans')->insertOrIgnore([
+                'kode' => $pengungsi->kode, 'jenis' => 'pengungsi', 'dihapus_pada' => now(),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
 
         $pengungsi->delete();
 

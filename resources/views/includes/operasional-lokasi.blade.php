@@ -63,7 +63,7 @@
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="rejected">
                             <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-semibold">
-                                <i class="fas fa-xmark"></i> Tolak
+                                <i class="fas fa-times"></i> Tolak
                             </button>
                         </form>
                     @endif
@@ -107,7 +107,7 @@
                         @csrf @method('PATCH')
                         <input type="hidden" name="aksi" value="siaga">
                         <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-semibold">
-                            <i class="fas fa-rotate-left"></i> Kembalikan ke Siaga
+                            <i class="fas fa-undo-alt"></i> Kembalikan ke Siaga
                         </button>
                     </form>
                 @endif
@@ -145,7 +145,7 @@
 {{-- Relawan yang BUKAN penanggung jawab: jelaskan kenapa tidak ada tombol pengajuan --}}
 @if (! $bisaKelola && auth()->user()?->hasRole('relawan') && $lokasi->isApproved())
     <p class="-mt-4 mb-6 flex items-center gap-2 text-xs text-slate-500">
-        <i class="fas fa-circle-info text-slate-400"></i>
+        <i class="fas fa-info-circle text-slate-400"></i>
         Pengajuan mulai / tutup operasi posko ini hanya dapat dilakukan oleh relawan penanggung jawab
         <b class="text-slate-700">{{ optional(optional($lokasi->relawan)->user)->name ?? '-' }}</b>.
     </p>
@@ -173,13 +173,13 @@
                 <input type="text" name="catatan" maxlength="500" placeholder="Catatan untuk relawan (opsional)"
                        class="h-10 w-60 max-w-full rounded-xl border border-amber-200 bg-white px-3 text-sm focus:outline-none focus:border-red-400">
                 <button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold">
-                    <i class="fas fa-xmark"></i> Kirim Penolakan
+                    <i class="fas fa-times"></i> Kirim Penolakan
                 </button>
                 <button type="button" @click="tolak = false" class="text-xs font-semibold text-slate-500 underline">batal</button>
             </form>
             <button type="button" x-show="!tolak" @click="tolak = true"
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 text-sm font-semibold">
-                <i class="fas fa-xmark"></i> Tolak
+                <i class="fas fa-times"></i> Tolak
             </button>
             <form method="POST" action="{{ route('admin.permintaan-operasional.setujui', $permintaan->id) }}" x-show="!tolak"
                   onsubmit="return confirm('Setujui permintaan ini? Status operasional posko akan langsung berubah.')">
@@ -199,10 +199,10 @@
         $bantuan = $operasional['bantuan'];
         $angkaB  = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, ',', '.'), '0'), ',');
         $tingkatB = [
-            'segera' => ['Posko ini butuh bantuan segera', 'bg-red-600 text-white',          'fa-triangle-exclamation'],
+            'segera' => ['Posko ini butuh bantuan segera', 'bg-red-600 text-white',          'fa-exclamation-triangle'],
             'pantau' => ['Posko ini perlu dipantau',       'bg-amber-100 text-amber-900',    'fa-eye'],
-            'cukup'  => ['Kebutuhan posko saat ini tercukupi', 'bg-green-100 text-green-800', 'fa-circle-check'],
-            'belum'  => ['Kebutuhan belum bisa dihitung',  'bg-slate-100 text-slate-700',    'fa-circle-question'],
+            'cukup'  => ['Kebutuhan posko saat ini tercukupi', 'bg-green-100 text-green-800', 'fa-check-circle'],
+            'belum'  => ['Kebutuhan belum bisa dihitung',  'bg-slate-100 text-slate-700',    'fa-question-circle'],
         ][$bantuan['tingkat']] ?? null;
 
         // Tugas & data medis hanya untuk petugas (admin / relawan); nama pengungsi hanya untuk pengelola posko
@@ -230,7 +230,7 @@
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
                 <div>
                     <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fas fa-list-check text-red-500"></i> Tugas Hari Ini
+                        <i class="fas fa-tasks text-red-500"></i> Tugas Hari Ini
                     </h3>
                     <p class="text-xs text-slate-500">Disusun otomatis dari data stok &amp; pengungsi · {{ now()->translatedFormat('l, d M Y') }}</p>
                 </div>
@@ -262,7 +262,7 @@
                 </div>
             @empty
                 <div class="px-5 py-6 text-center text-sm text-green-700">
-                    <i class="fas fa-circle-check mr-1"></i> Tidak ada tugas mendesak. Kondisi posko terpantau aman.
+                    <i class="fas fa-check-circle mr-1"></i> Tidak ada tugas mendesak. Kondisi posko terpantau aman.
                 </div>
             @endforelse
         </section>
@@ -342,7 +342,7 @@
 
         @if ($bantuan['rentan']->isNotEmpty())
             <div class="px-5 py-4 border-t border-slate-100 bg-purple-50/40">
-                <p class="text-sm font-bold text-slate-800 mb-2"><i class="fas fa-person-cane text-purple-500 mr-1"></i> Kebutuhan khusus kelompok rentan</p>
+                <p class="text-sm font-bold text-slate-800 mb-2"><i class="fas fa-blind text-purple-500 mr-1"></i> Kebutuhan khusus kelompok rentan</p>
                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     @foreach ($bantuan['rentan'] as $kelompok => $r)
                         <li class="rounded-xl bg-white border border-purple-100 px-3 py-2">
@@ -433,7 +433,7 @@
 
             @if ($p['total'] === 0)
                 <div class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    <i class="fas fa-circle-info mt-0.5"></i>
+                    <i class="fas fa-info-circle mt-0.5"></i>
                     <div>
                         <p class="font-semibold">Belum ada pengungsi yang tercatat di posko ini.</p>
                         <p class="text-xs text-amber-700 mt-0.5">Kebutuhan air, kalori, toilet, dan logistik dihitung dari jumlah pengungsi, jadi masih 0.
@@ -447,12 +447,12 @@
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div class="rounded-xl bg-sky-50 p-4">
-                    <i class="fas fa-droplet text-sky-500"></i>
+                    <i class="fas fa-tint text-sky-500"></i>
                     <p class="text-xs text-sky-700 mt-2">Total Air</p>
                     <p class="text-lg font-black text-sky-800">{{ number_format($operasional['sphere']['air_total'], 0, ',', '.') }} L</p>
                 </div>
                 <div class="rounded-xl bg-cyan-50 p-4">
-                    <i class="fas fa-glass-water text-cyan-500"></i>
+                    <i class="fas fa-glass-whiskey text-cyan-500"></i>
                     <p class="text-xs text-cyan-700 mt-2">Air Minum</p>
                     <p class="text-lg font-black text-cyan-800">{{ number_format($operasional['sphere']['air_minum'], 0, ',', '.') }} L</p>
                 </div>
@@ -500,7 +500,7 @@
                             <div class="min-w-0">
                                 <p class="font-semibold text-orange-600">&minus;{{ $k->jumlah_keluar }} {{ $k->satuan }} <span class="text-slate-800">{{ $k->nama_item }}</span></p>
                                 <p class="text-xs text-slate-400 truncate">
-                                    <i class="fas {{ \App\Models\StokKeluar::TUJUAN[$k->tujuan][1] ?? 'fa-ellipsis' }} mr-0.5"></i>
+                                    <i class="fas {{ \App\Models\StokKeluar::TUJUAN[$k->tujuan][1] ?? 'fa-ellipsis-h' }} mr-0.5"></i>
                                     {{ \App\Models\StokKeluar::TUJUAN[$k->tujuan][0] ?? ucfirst($k->tujuan) }}
                                     {{-- Nama penerima & petugas hanya untuk pengelola posko --}}
                                     @if ($bisaKelola && ($k->penerima || $k->petugas))
@@ -524,7 +524,7 @@
             <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fas fa-kit-medical text-red-500"></i> Pengungsi Perlu Perhatian Medis
+                        <i class="fas fa-first-aid text-red-500"></i> Pengungsi Perlu Perhatian Medis
                     </h3>
                     <p class="text-xs text-slate-500">Sedang sakit, punya riwayat penyakit, atau termasuk kelompok rentan.</p>
                 </div>
@@ -535,7 +535,7 @@
             </div>
 
             @if ($medis->isEmpty())
-                <p class="px-5 py-6 text-center text-sm text-green-700"><i class="fas fa-circle-check mr-1"></i> Tidak ada pengungsi yang perlu perhatian medis.</p>
+                <p class="px-5 py-6 text-center text-sm text-green-700"><i class="fas fa-check-circle mr-1"></i> Tidak ada pengungsi yang perlu perhatian medis.</p>
             @elseif (! $bisaKelola)
                 {{-- Relawan lain hanya melihat jumlah, bukan nama (data kesehatan bersifat pribadi) --}}
                 <p class="px-5 py-4 text-sm text-slate-500">
@@ -595,14 +595,14 @@
     {{-- Tabel stok logistik --}}
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
         <div class="px-5 py-4 border-b border-slate-100">
-            <h3 class="font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-boxes-stacked text-green-600"></i> Stok Logistik di Posko Saat Ini</h3>
+            <h3 class="font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-boxes text-green-600"></i> Stok Logistik di Posko Saat Ini</h3>
             <p class="text-xs text-slate-400">Status: <b class="text-red-600">Kritis</b> &lt; {{ \App\Services\OperasionalLokasiService::BATAS_MERAH }} hari, <b class="text-amber-600">Menipis</b> &lt; {{ \App\Services\OperasionalLokasiService::BATAS_KUNING }} hari.</p>
         </div>
 
         @php $tanpaKebutuhan = $operasional['stok']->whereNull('kebutuhan_harian'); @endphp
         @if ($operasional['stok']->isNotEmpty() && ($tanpaKebutuhan->isNotEmpty() || $p['total'] === 0))
             <div class="px-5 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-800 space-y-1">
-                <p class="font-semibold"><i class="fas fa-circle-info mr-1"></i> Daya tahan stok belum bisa dihitung untuk sebagian item karena:</p>
+                <p class="font-semibold"><i class="fas fa-info-circle mr-1"></i> Daya tahan stok belum bisa dihitung untuk sebagian item karena:</p>
                 <ul class="list-disc pl-5 space-y-0.5">
                     @if ($p['total'] === 0)
                         <li>Belum ada pengungsi tercatat (rumus: kebutuhan harian per orang &times; jumlah pengungsi).</li>

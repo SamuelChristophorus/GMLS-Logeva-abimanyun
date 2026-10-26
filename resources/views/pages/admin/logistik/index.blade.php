@@ -28,6 +28,7 @@
                 'templateRoute' => route('admin.logistik.import.template'),
                 'previewRoute'  => route('admin.logistik.import.preview'),
                 'exportRoute'   => route('admin.logistik.export'),
+                'exportCsvRoute'=> route('admin.logistik.export.csv'),
                 'templateFile'  => 'template_import_logistik.xlsx',
             ])
 

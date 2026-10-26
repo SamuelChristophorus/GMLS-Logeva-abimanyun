@@ -48,7 +48,7 @@
                             <p class="text-sm text-slate-500 mt-1">Tambah banyak desa sekaligus dari file Excel.</p>
                         </div>
                         <button type="button" @click="importOpen = false" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100">
-                            <i class="fas fa-xmark"></i>
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
 

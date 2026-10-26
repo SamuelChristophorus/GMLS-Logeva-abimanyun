@@ -112,20 +112,20 @@ class OperasionalLokasiService
 
         $sakit = $medis->where('sakit', true)->count();
         if ($sakit > 0) {
-            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-kit-medical', 'aksi' => 'medis',
+            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-first-aid', 'aksi' => 'medis',
                 'teks' => "Periksa kondisi {$sakit} pengungsi yang sedang sakit",
                 'ket'  => 'Pastikan sudah ditangani tenaga kesehatan dan obatnya tersedia.']);
         }
 
         if ($pengungsi['persen_isi'] >= self::BATAS_PENUH_PERSEN) {
-            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-people-roof', 'aksi' => null,
+            $tugas->push(['prioritas' => 'tinggi', 'ikon' => 'fa-house-user', 'aksi' => null,
                 'teks' => "Kapasitas terisi {$pengungsi['persen_isi']}%, koordinasikan posko cadangan",
                 'ket'  => "Sisa tempat {$pengungsi['sisa_tempat']} orang."]);
         }
 
         $rentanKhusus = collect($pengungsi['rentan'])->except('Sakit')->filter();
         if ($rentanKhusus->isNotEmpty()) {
-            $tugas->push(['prioritas' => 'sedang', 'ikon' => 'fa-person-cane', 'aksi' => 'medis',
+            $tugas->push(['prioritas' => 'sedang', 'ikon' => 'fa-blind', 'aksi' => 'medis',
                 'teks' => 'Cek kebutuhan khusus ' . $rentanKhusus->sum() . ' pengungsi rentan',
                 'ket'  => $rentanKhusus->map(fn ($j, $k) => "{$k} {$j}")->join(', ') . '.']);
         }
@@ -138,7 +138,7 @@ class OperasionalLokasiService
 
         $tanpaKebutuhan = $stok->whereNull('kebutuhan_harian');
         if ($tanpaKebutuhan->isNotEmpty()) {
-            $tugas->push(['prioritas' => 'rendah', 'ikon' => 'fa-sliders', 'aksi' => 'master',
+            $tugas->push(['prioritas' => 'rendah', 'ikon' => 'fa-sliders-h', 'aksi' => 'master',
                 'teks' => 'Atur kebutuhan harian ' . $tanpaKebutuhan->count() . ' barang di Master Logistik',
                 'ket'  => $tanpaKebutuhan->pluck('nama_item')->take(4)->join(', ') . '.']);
         }

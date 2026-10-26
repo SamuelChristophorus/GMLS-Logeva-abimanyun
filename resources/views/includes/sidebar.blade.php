@@ -42,6 +42,12 @@
             <i class="fas fa-warehouse w-7 text-center {{ request()->is('admin/logistik*') ? 'text-white' : 'text-slate-900 group-hover:text-blue-500' }} transition-colors"></i>
             <span class="ml-2 font-semibold text-sm">Master Logistik</span>
         </a>
+
+        <a href="{{ route('admin.paket.index') }}"
+            class="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 group {{ request()->is('admin/paket-data*') ? 'bg-red-600 shadow-md shadow-gray-500/20 text-white' : 'text-slate-900 hover:bg-white hover:shadow-sm hover:text-blue-600' }}">
+            <i class="fas fa-file-archive w-7 text-center {{ request()->is('admin/paket-data*') ? 'text-white' : 'text-slate-900 group-hover:text-blue-500' }} transition-colors"></i>
+            <span class="ml-2 font-semibold text-sm">Import Paket Posko</span>
+        </a>
     </div>
 
     <!-- User Mini Profile at bottom -->

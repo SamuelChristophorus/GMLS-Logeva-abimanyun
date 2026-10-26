@@ -36,7 +36,8 @@ class LokasiController extends Controller
 
     public function index()
     {
-        $lokasis = $this->lokasiRepository->getAllLokasis();
+        $lokasis = $this->lokasiRepository->getAllLokasis()
+            ->loadMax('riwayatPaket', 'paket_dibuat_pada'); // "Paket terakhir" posko offline
         return view("pages.admin.lokasi.index", compact("lokasis"));
     }
 

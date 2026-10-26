@@ -75,6 +75,41 @@ class LogistikImportController extends BaseImportController
         return Excel::download(new LogistikExport, 'master_logistik.xlsx');
     }
 
+    /**
+     * Export CSV untuk aplikasi offline (Master Barang -> Import dari website),
+     * tanpa perlu membuka Excel dulu. Baris pertama = judul kolom, pemisah koma,
+     * angka desimal memakai koma ("2,5") seperti yang dibaca aplikasi & import website.
+     */
+    public function exportCsv()
+    {
+        $kategori = KategoriLogistik::pluck('nama_kategori', 'id');
+        $barang = Logistik::orderBy('kategori_logistik_id')->orderBy('nama_item')->get();
+
+        return response()->streamDownload(function () use ($kategori, $barang) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // BOM agar Excel membaca UTF-8
+            fputcsv($out, ['Nama Item', 'Kategori', 'Satuan', 'Kebutuhan Harian', 'Deskripsi'], ',', '"', '');
+            foreach ($barang as $b) {
+                fputcsv($out, [
+                    $b->nama_item,
+                    $kategori[$b->kategori_logistik_id] ?? '',
+                    $b->satuan,
+                    $this->angkaCsv($b->kebutuhan_harian),
+                    (string) $b->deskripsi,
+                ], ',', '"', '');
+            }
+            fclose($out);
+        }, 'master_logistik_' . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** 12 -> "12", 2.5 -> "2,5", kosong -> "". */
+    private function angkaCsv($nilai): string
+    {
+        if ($nilai === null || $nilai === '') return '';
+        $n = round((float) $nilai, 2);
+        return $n == floor($n) ? (string) (int) $n : str_replace('.', ',', (string) $n);
+    }
+
     protected function periksa(array $rows): array
     {
         $kategoris = KategoriLogistik::all()->keyBy(fn ($k) => N::kunci($k->nama_kategori));

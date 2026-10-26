@@ -112,6 +112,92 @@
                 </div>
             </div>
 
+            @php $kirimanPaket = $lokasi->riwayatPaket()->with('user')->get()->sortByDesc(fn ($r) => [$r->paket_dibuat_pada?->timestamp ?? 0, $r->id])->values(); @endphp
+            @if ($kirimanPaket->isNotEmpty())
+            @php
+                $paketPada = $lokasi->paketTerakhirPada();
+                $warna = \App\Models\RiwayatImportPaket::warnaUmur($paketPada);
+            @endphp
+            <!-- Kiriman Paket Data Posko dari aplikasi offline -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        Kiriman Data Aplikasi Offline
+                    </h3>
+                    @if ($paketPada)
+                        <span class="self-start sm:self-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-{{ $warna }}-50 text-{{ $warna }}-700 border border-{{ $warna }}-200">
+                            Paket terakhir: {{ \App\Models\RiwayatImportPaket::teksUmur($paketPada) }}
+                        </span>
+                    @endif
+                </div>
+                <p class="text-sm text-slate-500 mb-5">
+                    Data posko ini di pusat sesuai keadaan di HP pada waktu paket dibuat.
+                    @if ($warna === 'rose') Sudah lebih dari 3 hari: hubungi petugas posko untuk mengirim paket baru. @endif
+                </p>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-100">
+                                <th class="pb-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Paket dibuat</th>
+                                <th class="pb-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Dari</th>
+                                <th class="pb-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Diimpor</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @foreach ($kirimanPaket->take(5) as $r)
+                            <tr>
+                                <td class="py-3 px-4 font-bold text-slate-600 whitespace-nowrap">{{ $r->paket_dibuat_pada?->format('d-m-Y H:i') ?? '-' }}</td>
+                                <td class="py-3 px-4 text-slate-600">{{ $r->labelPerangkat() }}@if ($r->diekspor_oleh)<br><span class="text-xs text-slate-400">{{ $r->diekspor_oleh }}</span>@endif</td>
+                                <td class="py-3 px-4 text-slate-600 whitespace-nowrap">{{ $r->created_at->format('d-m-Y H:i') }}<br><span class="text-xs text-slate-400">{{ $r->user->name ?? 'akun terhapus' }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @php $selisihStok = \App\Models\SelisihStokPaket::terkini($lokasi->id); @endphp
+                @if ($selisihStok->isNotEmpty())
+                    <a href="{{ route('admin.paket.selisih') }}" class="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 hover:bg-amber-100 transition-colors">
+                        <span><i class="fas fa-balance-scale mr-1"></i> Stok {{ $selisihStok->pluck('nama_item')->join(', ') }} di HP berbeda dengan stok pusat.</span>
+                        <span class="font-bold whitespace-nowrap">Lihat <i class="fas fa-arrow-right text-xs ml-1"></i></span>
+                    </a>
+                @endif
+                @if ($kirimanPaket->count() > 5)
+                    <p class="text-xs text-slate-400 mt-3">{{ $kirimanPaket->count() - 5 }} kiriman lebih lama ada di menu <a href="{{ route('admin.paket.index') }}" class="font-bold text-blue-600 hover:underline">Import Paket Posko</a>.</p>
+                @endif
+            </div>
+            @endif
+
+            @php $petugasLapangan = $lokasi->petugasUnik(); @endphp
+            @if ($petugasLapangan->isNotEmpty())
+            <!-- Petugas dari aplikasi offline (Paket Data Posko) -->
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+                <h3 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <i class="fas fa-id-badge"></i>
+                    </div>
+                    Petugas Lapangan (Aplikasi Offline)
+                </h3>
+                <p class="text-sm text-slate-500 mb-6">
+                    Dari Paket Data Posko terakhir ({{ $petugasLapangan->max('paket_dibuat_pada')?->format('d-m-Y H:i') }} WIB).
+                    Hanya nama &amp; kontak untuk dihubungi, bukan akun website.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach ($petugasLapangan as $t)
+                        <div class="{{ $t->peran === 'admin' ? 'bg-amber-50/70 border-amber-100' : 'bg-slate-50/70 border-slate-100' }} p-4 rounded-2xl border">
+                            <p class="text-xs font-bold {{ $t->peran === 'admin' ? 'text-amber-600/80' : 'text-slate-400' }} uppercase tracking-widest mb-1">{{ $t->labelPeran() }}</p>
+                            <p class="text-sm font-bold text-slate-700">{{ $t->nama }}</p>
+                            <p class="text-xs text-slate-500 font-medium break-all"><i class="fas fa-phone-alt text-[10px] mr-1"></i>{{ $t->kontak ?: 'Kontak tidak diisi' }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             <!-- Status Tracking Card -->
             <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

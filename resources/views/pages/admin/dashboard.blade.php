@@ -187,9 +187,9 @@
         $totalPersetujuan = array_sum($persetujuan) ?: 1;
         $totalOps         = array_sum($operasional) ?: 1;
         $segPersetujuan = [
-            ['approved', 'Disetujui', 'fa-circle-check',       'var(--st-good)'],
+            ['approved', 'Disetujui', 'fa-check-circle',       'var(--st-good)'],
             ['pending',  'Menunggu',  'fa-hourglass-half',     'var(--st-warning)'],
-            ['rejected', 'Ditolak',   'fa-circle-xmark',       'var(--st-critical)'],
+            ['rejected', 'Ditolak',   'fa-times-circle',       'var(--st-critical)'],
         ];
         $segOps = [
             ['beroperasi', 'Beroperasi', 'fa-play',  'var(--st-good)'],
@@ -313,7 +313,7 @@
                                 @csrf @method('PATCH')
                                 <button type="submit" name="status" value="rejected" onclick="return confirm('Tolak laporan posko ini?')"
                                         class="w-9 h-9 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Tolak">
-                                    <i class="fas fa-xmark"></i>
+                                    <i class="fas fa-times"></i>
                                 </button>
                                 <button type="submit" name="status" value="approved"
                                         class="w-9 h-9 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700" title="Setujui">
@@ -323,7 +323,7 @@
                         </div>
                     @empty
                         <div class="h-full flex flex-col items-center justify-center text-slate-400 text-sm py-10">
-                            <i class="fas fa-circle-check text-3xl mb-2 text-emerald-400"></i> Semua laporan sudah diverifikasi.
+                            <i class="fas fa-check-circle text-3xl mb-2 text-emerald-400"></i> Semua laporan sudah diverifikasi.
                         </div>
                     @endforelse
                 </div>
@@ -488,9 +488,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const esc       = TeaPeta.esc;
 
     const PERSETUJUAN = {
-        approved: { label: 'Disetujui', badge: 'bg-emerald-100 text-emerald-700', ikon: 'fa-circle-check' },
+        approved: { label: 'Disetujui', badge: 'bg-emerald-100 text-emerald-700', ikon: 'fa-check-circle' },
         pending:  { label: 'Pending',   badge: 'bg-amber-100 text-amber-700',     ikon: 'fa-hourglass-half' },
-        rejected: { label: 'Ditolak',   badge: 'bg-rose-100 text-rose-700',       ikon: 'fa-circle-xmark' },
+        rejected: { label: 'Ditolak',   badge: 'bg-rose-100 text-rose-700',       ikon: 'fa-times-circle' },
     };
     const OPERASIONAL = {
         beroperasi: { label: 'Beroperasi',      badge: 'bg-green-600 text-white',     ikon: 'fa-play' },
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     const angka = (n) => Number(n || 0).toLocaleString('id-ID');
     const BANTUAN = {
-        segera: { label: 'Butuh bantuan segera', kotak: 'bg-red-50 border-red-200 text-red-800',       ikon: 'fa-triangle-exclamation' },
+        segera: { label: 'Butuh bantuan segera', kotak: 'bg-red-50 border-red-200 text-red-800',       ikon: 'fa-exclamation-triangle' },
         pantau: { label: 'Perlu dipantau',       kotak: 'bg-amber-50 border-amber-200 text-amber-800', ikon: 'fa-eye' },
     };
 
@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p><i class="fas fa-vector-square text-slate-400 w-4"></i> Luas ${angka(l.luas)} m²</p>
                 </div>
                 <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] font-semibold text-blue-600">
-                    <i class="fas fa-arrow-pointer mr-1"></i> Klik titik untuk kelola data &rarr;
+                    <i class="fas fa-mouse-pointer mr-1"></i> Klik titik untuk kelola data &rarr;
                 </div>
             </div>`;
     };

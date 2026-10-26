@@ -35,7 +35,7 @@
         <div class="p-6 md:p-8">
             <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                    <i class="fas fa-boxes-stacked"></i>
+                    <i class="fas fa-boxes"></i>
                 </div>
                 Data Item
             </h3>

@@ -13,7 +13,7 @@
     $target    = \App\Services\OperasionalLokasiService::targetHari();
     $angka     = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, ',', '.'), '0'), ',');
     $tingkatUi = [
-        'segera' => ['Butuh bantuan segera', 'bg-red-600 text-white',        'border-red-200',   'fa-triangle-exclamation'],
+        'segera' => ['Butuh bantuan segera', 'bg-red-600 text-white',        'border-red-200',   'fa-exclamation-triangle'],
         'pantau' => ['Perlu dipantau',       'bg-amber-100 text-amber-800',  'border-amber-200', 'fa-eye'],
     ];
 @endphp
@@ -38,7 +38,7 @@
     @if ($mendesak->isEmpty())
         <div class="px-5 py-8 flex flex-col items-center text-center">
             <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl">
-                <i class="fas fa-circle-check"></i>
+                <i class="fas fa-check-circle"></i>
             </div>
             <p class="mt-3 font-bold text-slate-800">
                 {{ $aktif ? 'Semua posko yang beroperasi saat ini tercukupi' : 'Belum ada posko yang beroperasi' }}
@@ -101,7 +101,7 @@
 
     @if ($admin && $belum)
         <p class="px-5 py-3 border-t border-slate-100 text-xs text-amber-700 bg-amber-50">
-            <i class="fas fa-circle-info mr-1"></i>
+            <i class="fas fa-info-circle mr-1"></i>
             {{ $belum }} posko beroperasi belum bisa dihitung karena kebutuhan harian barang belum diatur di
             <a href="{{ route('admin.logistik.index') }}" class="font-bold underline">Master Logistik</a>.
         </p>

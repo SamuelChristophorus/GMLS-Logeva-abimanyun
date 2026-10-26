@@ -261,29 +261,9 @@ class LokasiImportController extends BaseImportController
         return compact('tambah', 'perbarui');
     }
 
-    /**
-     * Kebutuhan SPHERE harian untuk seluruh kapasitas posko.
-     * Rumus sama persis dengan form Tambah Lokasi (pages/admin/lokasi/create.blade.php):
-     * air hidup 2,5 L, kebersihan 2 L, memasak 3 L per orang,
-     * toilet = round(kapasitas / 50) & round(kapasitas / 20),
-     * kalori 2.100 kkal, protein 53 g, lemak 40 g per orang.
-     */
+    /** Rumus SPHERE ada di SphereLokasi::hitungUntuk (dipakai juga import Paket Data Posko). */
     private function simpanSphere(Lokasi $lokasi): void
     {
-        $k = (int) $lokasi->kapasitas_pengungsi;
-
-        $nilai = [
-            'air_hidup'      => (int) round($k * 2.5),
-            'air_kebersihan' => $k * 2,
-            'air_memasak'    => $k * 3,
-            'toilet_pendek'  => (int) round($k / 50),
-            'toilet_panjang' => (int) round($k / 20),
-            'kalori'         => $k * 2100,
-            'protein'        => $k * 53,
-            'lemak'          => $k * 40,
-        ];
-
-        $sphere = SphereLokasi::where('lokasi_id', $lokasi->id)->first() ?? new SphereLokasi;
-        $sphere->forceFill(['lokasi_id' => $lokasi->id] + $nilai)->save();
+        SphereLokasi::hitungUntuk($lokasi);
     }
 }

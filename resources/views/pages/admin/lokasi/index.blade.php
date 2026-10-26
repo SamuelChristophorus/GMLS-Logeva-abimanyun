@@ -81,6 +81,13 @@
                                     <p class="text-xs text-slate-500 mt-2 line-clamp-2 max-w-sm" title="{{$lokasi->alamat_lokasi}}">
                                         {{$lokasi->alamat_lokasi}}
                                     </p>
+                                    @if ($paketPada = $lokasi->paketTerakhirPada())
+                                        @php $warna = \App\Models\RiwayatImportPaket::warnaUmur($paketPada); @endphp
+                                        <span class="self-start inline-flex items-center mt-2 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-{{ $warna }}-50 text-{{ $warna }}-700 border border-{{ $warna }}-200"
+                                              title="Data dari aplikasi offline, dibuat di HP {{ $paketPada->format('d-m-Y H:i') }} WIB">
+                                            <i class="fas fa-file-archive mr-1"></i> Paket terakhir: {{ \App\Models\RiwayatImportPaket::teksUmur($paketPada) }}
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
 

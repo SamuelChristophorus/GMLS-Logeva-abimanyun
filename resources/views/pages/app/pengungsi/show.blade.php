@@ -100,7 +100,7 @@
                     </p>
 
                     <h3 class="text-lg font-bold text-slate-800">
-                        {{ $pengungsi->nomor_kk }}
+                        {{ $pengungsi->nomor_kk ?: 'Belum diketahui' }}
                     </h3>
 
                 </div>
@@ -169,6 +169,22 @@
                     </h3>
 
                 </div>
+
+                @if ($pengungsi->dicatat_oleh)
+                <!-- PENCATAT (dari aplikasi offline) -->
+                <div class="bg-slate-50 rounded-2xl p-5 md:col-span-2">
+
+                    <p class="text-sm text-slate-500 mb-2">
+                        Dicatat oleh
+                    </p>
+
+                    <h3 class="text-lg font-bold text-slate-800">
+                        {{ $pengungsi->dicatat_oleh }}
+                        <span class="text-sm font-medium text-slate-500">(aplikasi offline)</span>
+                    </h3>
+
+                </div>
+                @endif
 
             </div>
 

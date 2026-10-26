@@ -153,13 +153,15 @@
                     <div>
 
                         <label class="block text-sm font-bold text-slate-700 mb-3">
-                            Nomor Kartu Keluarga
+                            Nomor Kartu Keluarga <span class="font-medium text-slate-400">(opsional)</span>
                         </label>
 
                         <input type="text"
                                name="nomor_kk"
                                value="{{ $pengungsi->nomor_kk }}"
-                               required
+                               inputmode="numeric" maxlength="16" pattern="\d{16}"
+                               title="Kosongkan jika tidak diketahui, atau isi 16 digit angka"
+                               placeholder="Kosongkan jika tidak diketahui"
                                class="w-full rounded-[22px]
                                       border border-slate-200
                                       px-5 py-4

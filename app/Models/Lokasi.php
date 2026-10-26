@@ -74,6 +74,46 @@ class Lokasi extends Model
         return $this->hasMany(Pengungsi::class);
     }
 
+    /** Petugas lapangan dari aplikasi offline (admin dulu, lalu relawan). */
+    public function petugas()
+    {
+        return $this->hasMany(PetugasPosko::class)->orderBy('peran')->orderBy('nama');
+    }
+
+    /**
+     * Petugas tanpa dobel: satu posko bisa mengirim paket dari beberapa HP
+     * (HP Induk & Anggota) dengan akun yang sama. Setiap akun (kode_akun, atau
+     * peran + nama + kontak untuk paket lama) ditampilkan sekali, dari paket terbaru.
+     */
+    public function petugasUnik()
+    {
+        return $this->petugas
+            ->sortByDesc('paket_dibuat_pada')
+            ->unique(fn ($t) => $t->kode_akun ?: $t->peran . '|' . mb_strtolower($t->nama) . '|' . $t->kontak)
+            ->sortBy(fn ($t) => $t->peran . '|' . mb_strtolower($t->nama))
+            ->values();
+    }
+
+    /** Paket Data Posko yang pernah digabung untuk posko ini. */
+    public function riwayatPaket()
+    {
+        return $this->belongsToMany(RiwayatImportPaket::class);
+    }
+
+    /**
+     * Waktu data posko ini terakhir dibuat di HP (dari paket terbaru), atau null jika
+     * posko belum pernah mengirim paket. Memakai hasil loadMax() jika sudah dimuat.
+     */
+    public function paketTerakhirPada(): ?\Carbon\CarbonInterface
+    {
+        $kolom = 'riwayat_paket_max_paket_dibuat_pada';
+        $nilai = array_key_exists($kolom, $this->attributes)
+            ? $this->attributes[$kolom]
+            : $this->riwayatPaket()->max('paket_dibuat_pada');
+
+        return $nilai ? \Illuminate\Support\Carbon::parse($nilai) : null;
+    }
+
     public function permintaanOperasional()
     {
         return $this->hasMany(PermintaanOperasional::class);

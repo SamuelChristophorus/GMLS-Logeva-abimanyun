@@ -64,7 +64,7 @@ class PengungsiImportController extends Controller
                 ['Nama',              'wajib', 'Nama lengkap pengungsi.', 28],
                 ['Asal',              'wajib', 'Asal desa / alamat sebelum mengungsi.', 24],
                 ['Tanggal Lahir',     'wajib', 'Format TAHUN-BULAN-TANGGAL, contoh: 1990-07-25. Format 25-07-1990 atau 25/07/1990 juga diterima.', 16],
-                ['Nomor KK',          'wajib', '16 digit angka. Kolom ini sudah diatur sebagai teks agar digit terakhir tidak hilang.', 22],
+                ['Nomor KK',          'opsional', 'Boleh dikosongkan jika tidak diketahui. Jika diisi: 16 digit angka. Kolom ini sudah diatur sebagai teks agar digit terakhir tidak hilang.', 22],
                 ['Usia',              'opsional', 'Boleh dikosongkan: dihitung otomatis dari tanggal lahir.', 8],
                 ['Jenis Kelamin',     'wajib', 'Laki-laki atau Perempuan (L / P juga diterima).', 16],
                 ['Kondisi Kesehatan', 'opsional', 'Contoh: Sehat, Demam, Luka ringan. Kosong = Sehat.', 20],
@@ -217,10 +217,9 @@ class PengungsiImportController extends Controller
             $usia = $usia === null || $usia === false ? $usiaHitung : (int) $usia;
 
             // --- nomor KK ---
+            // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
             $kk = $this->nomorKk($r['nomor_kk'] ?? null);
-            if ($kk === null) {
-                $error[] = 'Nomor KK kosong';
-            } elseif (is_array($kk)) {
+            if (is_array($kk)) {
                 $error[] = $kk[0];
                 $kk = null;
             }

@@ -8,7 +8,7 @@
         'tambah'   => ['Ditambahkan', 'bg-emerald-100 text-emerald-700 border-emerald-200', 'fa-plus'],
         'perbarui' => ['Diperbarui',  'bg-blue-100 text-blue-700 border-blue-200',          'fa-pen'],
         'sama'     => ['Tidak berubah','bg-slate-100 text-slate-500 border-slate-200',      'fa-equals'],
-        'error'    => ['Error',       'bg-rose-100 text-rose-700 border-rose-200',          'fa-triangle-exclamation'],
+        'error'    => ['Error',       'bg-rose-100 text-rose-700 border-rose-200',          'fa-exclamation-triangle'],
     ];
 @endphp
 <div class="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10 min-h-screen flex flex-col gap-8">
@@ -27,7 +27,7 @@
 
         <div class="flex flex-wrap items-center gap-3">
             <a href="{{ route('admin.desa.index') }}" class="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-600 font-bold px-5 py-3 rounded-xl shadow-sm border border-slate-200">
-                <i class="fas fa-xmark text-sm"></i> Batal
+                <i class="fas fa-times text-sm"></i> Batal
             </a>
             @if ($jumlahValid > 0)
                 <form method="POST" action="{{ route('admin.desa.import.confirm') }}"
@@ -55,14 +55,14 @@
 
     @if (($ringkasan['error'] ?? 0) > 0)
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            <i class="fas fa-circle-info mr-1"></i>
+            <i class="fas fa-info-circle mr-1"></i>
             Baris berstatus <b>Error</b> akan dilewati. Perbaiki di file Excel lalu upload ulang jika ingin ikut disimpan.
         </div>
     @endif
 
     @if ($jumlahValid === 0)
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            <i class="fas fa-circle-info mr-1"></i>
+            <i class="fas fa-info-circle mr-1"></i>
             Tidak ada data baru atau perubahan yang bisa disimpan.
         </div>
     @endif

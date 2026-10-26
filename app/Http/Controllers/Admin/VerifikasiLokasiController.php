@@ -42,7 +42,7 @@ class VerifikasiLokasiController extends Controller
             pesan:    "Laporan posko {$lokasi->nama_lokasi} " . ($disetujui ? 'telah disetujui admin.' : 'ditolak admin.')
                       . (($data['catatan'] ?? null) ? " Catatan: {$data['catatan']}" : ''),
             url:      route('lokasi.mylokasi', ['status' => $disetujui ? 'approved' : 'rejected']),
-            ikon:     $disetujui ? 'fa-circle-check' : 'fa-circle-xmark',
+            ikon:     $disetujui ? 'fa-check-circle' : 'fa-times-circle',
             warna:    $disetujui ? 'green' : 'red',
             lokasiId: $lokasi->id,
         ));
