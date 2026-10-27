@@ -87,6 +87,10 @@
         ['melati.jpeg', 'Melati Octaviana Purba'],
         ['melisa.jpeg', 'Melisa Ashley'],
         ['farrel.jpeg', 'Farrel Safwan'],
+        ['abiii.jpeg',     'Septian Abimanyu'],
+        ['farhan.jpeg',    'Mohammad Farhan Junialdi'],
+        ['farrelaja.jpeg', 'Farrel'],
+        ['samuel.jpeg',    'Samuel Christophorus Wijaya'],
     ];
 @endphp
 
@@ -230,7 +234,7 @@
             </div>
 
             <h4 class="text-xl font-bold text-center mb-5">Tim Pengembang Website</h4>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 @foreach ($tim as [$foto, $nama])
                     <div class="bg-white/10 rounded-2xl p-4 text-center">
                         <img src="{{ asset('assets/team/' . $foto) }}" alt="{{ $nama }}"
