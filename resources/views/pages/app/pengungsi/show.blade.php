@@ -170,6 +170,28 @@
 
                 </div>
 
+                @if ($pengungsi->status_keberadaan && $pengungsi->status_keberadaan !== \App\Models\Pengungsi::DI_POSKO)
+                <!-- KEBERADAAN: sudah keluar posko (dari aplikasi offline) -->
+                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-5 md:col-span-2">
+
+                    <p class="text-sm text-amber-700 mb-2">
+                        Keberadaan
+                    </p>
+
+                    <h3 class="text-lg font-bold text-slate-800">
+                        {{ $pengungsi->labelKeberadaan() }}
+                        @if ($pengungsi->keluar_pada)
+                            <span class="text-sm font-medium text-slate-500">sejak {{ \Carbon\Carbon::parse($pengungsi->keluar_pada)->format('d-m-Y') }}</span>
+                        @endif
+                    </h3>
+                    @if ($pengungsi->keterangan_keluar)
+                        <p class="text-sm text-slate-600 mt-1">{{ $pengungsi->keterangan_keluar }}</p>
+                    @endif
+                    <p class="text-xs text-slate-500 mt-2">Tidak dihitung untuk kapasitas & kebutuhan posko.</p>
+
+                </div>
+                @endif
+
                 @if ($pengungsi->dicatat_oleh)
                 <!-- PENCATAT (dari aplikasi offline) -->
                 <div class="bg-slate-50 rounded-2xl p-5 md:col-span-2">

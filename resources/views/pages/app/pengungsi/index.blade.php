@@ -873,6 +873,33 @@
         </p>
     </div>
 
+    @php $keluarPosko = $lokasi->pengungsiKeluar; @endphp
+    @if ($keluarPosko->isNotEmpty())
+    <!-- SUDAH KELUAR POSKO (dari aplikasi offline): tidak dihitung kapasitas & kebutuhan -->
+    <details class="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+        <summary class="cursor-pointer text-sm font-bold text-slate-700">
+            <i class="fas fa-sign-out-alt text-slate-400 mr-1"></i>
+            Sudah keluar posko ({{ $keluarPosko->count() }} orang)
+            <span class="font-medium text-slate-400">· tidak dihitung untuk kapasitas & kebutuhan</span>
+        </summary>
+        <div class="mt-4 divide-y divide-slate-100">
+            @foreach ($keluarPosko as $k)
+                <a href="{{ route('pengungsi.show', $k->id) }}" class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50 rounded-lg px-2">
+                    <span class="min-w-0">
+                        <span class="block font-semibold text-slate-700 truncate">{{ $k->nama }}</span>
+                        <span class="block text-xs text-slate-500">
+                            {{ $k->labelKeberadaan() }}@if ($k->keterangan_keluar) · {{ $k->keterangan_keluar }}@endif
+                        </span>
+                    </span>
+                    <span class="text-xs text-slate-400 whitespace-nowrap">
+                        {{ $k->keluar_pada ? \Carbon\Carbon::parse($k->keluar_pada)->format('d-m-Y') : '' }}
+                    </span>
+                </a>
+            @endforeach
+        </div>
+    </details>
+    @endif
+
 </div>
 
         </div>{{-- /mt-12 --}}

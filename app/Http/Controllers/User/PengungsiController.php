@@ -93,7 +93,8 @@ class PengungsiController extends Controller
 
     public function show($id)
     {
-        $pengungsi = Pengungsi::findOrFail($id);
+        // Termasuk yang sudah keluar posko (dibuka dari daftar "Sudah keluar posko").
+        $pengungsi = Pengungsi::semuaKeberadaan()->findOrFail($id);
 
         return view(
             'pages.app.pengungsi.show',

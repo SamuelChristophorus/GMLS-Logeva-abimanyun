@@ -15,7 +15,7 @@
 
     // Demografi pengungsi semua posko sekaligus (panel visualisasi di bawah peta)
     $idLokasi  = $semuaLokasi->pluck('id');
-    $demografi = \Illuminate\Support\Facades\DB::table('pengungsis')
+    $demografi = \App\Models\Pengungsi::tabelDiPosko()
         ->whereIn('lokasi_id', $idLokasi)
         ->selectRaw("lokasi_id,
             SUM(CASE WHEN jenis_kelamin = 'Laki-laki' THEN 1 ELSE 0 END) as laki,
@@ -23,7 +23,7 @@
         ->groupBy('lokasi_id')
         ->get()
         ->keyBy('lokasi_id');
-    $rentanPer = \Illuminate\Support\Facades\DB::table('pengungsis')
+    $rentanPer = \App\Models\Pengungsi::tabelDiPosko()
         ->whereIn('lokasi_id', $idLokasi)
         ->where('kelompok_rentan', '!=', 'Tidak')
         ->selectRaw('lokasi_id, kelompok_rentan, COUNT(*) as jumlah')

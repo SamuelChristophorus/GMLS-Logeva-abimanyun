@@ -74,6 +74,15 @@ class Lokasi extends Model
         return $this->hasMany(Pengungsi::class);
     }
 
+    /** Pengungsi yang sudah keluar posko (pulang / pindah / dirujuk). */
+    public function pengungsiKeluar()
+    {
+        return $this->hasMany(Pengungsi::class)
+            ->withoutGlobalScope('di_posko')
+            ->where('status_keberadaan', '!=', Pengungsi::DI_POSKO)
+            ->orderByDesc('keluar_pada');
+    }
+
     /** Petugas lapangan dari aplikasi offline (admin dulu, lalu relawan). */
     public function petugas()
     {

@@ -54,7 +54,7 @@ class DashboardController extends Controller
         });
 
         // Komposisi pengungsi seluruh posko per kelompok usia
-        $p = fn () => DB::table('pengungsis');
+        $p = fn () => \App\Models\Pengungsi::tabelDiPosko(); // tanpa yang sudah keluar posko
         $usia = [
             'Balita (0-4)'   => $p()->where('usia', '<', 5)->count(),
             'Anak (5-12)'    => $p()->whereBetween('usia', [5, 12])->count(),

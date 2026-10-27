@@ -506,6 +506,9 @@ Pusat mencocokkan posko dengan `kode_posko`; jika belum pernah diimpor, dicocokk
 | dicatat_oleh | tidak | nama akun lokal |
 | dibuat_pada / diubah_pada | ya | |
 | dihapus_pada | tidak | diisi jika pengungsi dihapus di HP |
+| status_keberadaan | tidak | `di_posko` / `pulang` / `pindah` / `dirujuk` (sejak 27 Okt 2026; kosong / paket lama = `di_posko`) |
+| keluar_pada | tidak | tanggal keluar posko `YYYY-MM-DD` (hanya jika bukan `di_posko`) |
+| keterangan_keluar | tidak | posko tujuan / RS / keterangan pulang |
 
 Aturan gabung: `kode` belum ada → tambah; sudah ada → ditimpa **hanya jika** `diubah_pada` paket lebih baru;
 `dihapus_pada` terisi → dihapus di pusat. Foto pengungsi **tidak** ikut paket.
@@ -676,3 +679,17 @@ HP Induk menampilkan "Kemungkinan Dobel"; supervisor memilih:
   Stok pusat tidak diubah otomatis.
 - **Pencatat pengungsi**: `pengungsi.csv` → `dicatat_oleh` disimpan di kolom `pengungsis.dicatat_oleh` dan tampil
   di detail pengungsi. Paket yang kolomnya kosong tidak menghapus nama yang sudah ada.
+- **Keberadaan pengungsi** (`pengungsis.status_keberadaan`, `keluar_pada`, `keterangan_keluar`, 27 Okt 2026):
+  pengungsi yang pulang / pindah posko / dirujuk **tidak dihapus**, tapi disembunyikan dari query biasa
+  (global scope di model `Pengungsi`) sehingga tidak dihitung untuk kapasitas, kebutuhan, komposisi, dan
+  dashboard. Lihat semua: `Pengungsi::semuaKeberadaan()`; query `DB::table` memakai `Pengungsi::tabelDiPosko()`.
+  Halaman pengungsi relawan menampilkan daftar "Sudah keluar posko" (hanya lihat).
+
+### 9.7 Kesiapan lapangan aplikasi (27 Okt 2026)
+- ID aplikasi Android **`id.gmls.logeva`**, nama **LOGEVA**, APK rilis ditandatangani kunci GMLS
+  (`android/key.properties` + `android/app/logeva-rilis.jks`, tidak ikut git; **wajib dicadangkan**).
+- **Cadangan & pemulihan** seluruh data HP (`cadangan_logeva_<waktu>.zip`): HP pengganti menjadi sama persis,
+  termasuk kode perangkat, jadi HP Anggota tetap mengenali HP Induk pengganti. Hanya dari versi database yang sama.
+- **Kunci otomatis** setelah 10 menit tidak dipakai.
+- **Laporan harian** berupa teks (SMS/radio), tanpa nama pengungsi.
+

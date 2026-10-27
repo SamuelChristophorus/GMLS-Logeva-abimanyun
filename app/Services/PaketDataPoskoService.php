@@ -215,7 +215,7 @@ class PaketDataPoskoService
         $pengungsi = [];
         $kodeDipakai = [];
         $dihapus = DB::table('paket_penghapusans')->where('jenis', 'pengungsi')->pluck('kode')->flip();
-        $lamaByKode = Pengungsi::whereNotNull('kode')->get()->keyBy('kode');
+        $lamaByKode = Pengungsi::semuaKeberadaan()->whereNotNull('kode')->get()->keyBy('kode');
 
         foreach ($this->csv($isi['pengungsi.csv']) as $r) {
             $pengungsi[] = $this->periksaPengungsi($r, $cariPosko, $kodeDipakai, $dihapus, $lamaByKode, $peringatan);
@@ -456,6 +456,14 @@ class PaketDataPoskoService
             'riwayat_penyakit'  => N::teks($r['riwayat_penyakit']),
             'dicatat_oleh'      => ($oleh = N::teks($r['dicatat_oleh'] ?? null)) ? mb_substr($oleh, 0, 255) : null,
         ];
+        // Keberadaan (kolom sejak 27 Okt 2026; paket lama tanpa kolom ini = di posko).
+        $status = $r['status_keberadaan'] ?? '';
+        $data['status_keberadaan'] = isset(Pengungsi::KEBERADAAN[$status]) ? $status : Pengungsi::DI_POSKO;
+        $keluar = $data['status_keberadaan'] === Pengungsi::DI_POSKO ? false : $this->tanggal($r['keluar_pada'] ?? '');
+        $data['keluar_pada'] = $keluar instanceof Carbon ? $keluar->toDateString() : null;
+        $data['keterangan_keluar'] = $data['status_keberadaan'] === Pengungsi::DI_POSKO
+            ? null
+            : (($k = N::teks($r['keterangan_keluar'] ?? null)) ? mb_substr($k, 0, 255) : null);
 
         $hasil = fn ($status, $alasan, $lama = null, $simpan = null) => [
             'row'    => $r['_row'],
@@ -497,7 +505,7 @@ class PaketDataPoskoService
 
         // Orang yang sama yang dicatat langsung di website (nama + tanggal lahir, posko sama).
         if ($posko['lokasi_id'] && $data['tanggal_lahir']) {
-            $sama = Pengungsi::where('lokasi_id', $posko['lokasi_id'])
+            $sama = Pengungsi::semuaKeberadaan()->where('lokasi_id', $posko['lokasi_id'])
                 ->whereDate('tanggal_lahir', $data['tanggal_lahir'])
                 ->get()
                 ->first(fn ($p) => N::kunci($p->nama) === N::kunci($nama));
@@ -703,12 +711,12 @@ class PaketDataPoskoService
                         'created_at' => now(), 'updated_at' => now(),
                     ]);
                     if ($b['status'] === 'hapus') {
-                        Pengungsi::whereKey($b['lama_id'])->delete();
+                        Pengungsi::semuaKeberadaan()->whereKey($b['lama_id'])->delete();
                         $hitung['dihapus']++;
                     }
                     continue;
                 }
-                $p = $b['lama_id'] ? Pengungsi::find($b['lama_id']) : new Pengungsi;
+                $p = $b['lama_id'] ? Pengungsi::semuaKeberadaan()->find($b['lama_id']) : new Pengungsi;
                 $p->forceFill([
                     'kode'                  => $s['kode'],
                     'lokasi_id'             => $lokasiId[$s['kode_posko']],
@@ -722,6 +730,9 @@ class PaketDataPoskoService
                     'kelompok_rentan'       => $s['kelompok_rentan'],
                     'riwayat_penyakit'      => $s['riwayat_penyakit'],
                     'dicatat_oleh'          => $s['dicatat_oleh'] ?? $p->dicatat_oleh, // kosong di paket = tetap
+                    'status_keberadaan'     => $s['status_keberadaan'],
+                    'keluar_pada'           => $s['keluar_pada'],
+                    'keterangan_keluar'     => $s['keterangan_keluar'],
                     'diubah_pada_perangkat' => $s['diubah'],
                 ])->save();
                 $hitung['pengungsi']++;

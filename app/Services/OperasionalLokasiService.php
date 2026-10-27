@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lokasi;
+use App\Models\Pengungsi;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -156,7 +157,7 @@ class OperasionalLokasiService
     {
         $sehat = "LOWER(TRIM(COALESCE(kondisi_kesehatan, ''))) IN ('', '-', 'sehat', 'baik')";
 
-        return DB::table('pengungsis')
+        return Pengungsi::tabelDiPosko()
             ->where('lokasi_id', $lokasi->id)
             ->where(fn ($q) => $q->whereRaw("NOT ({$sehat})")
                 ->orWhere(fn ($q) => $q->whereNotNull('riwayat_penyakit')->where('riwayat_penyakit', '!=', ''))
@@ -224,7 +225,7 @@ class OperasionalLokasiService
      */
     public function stokPosko(Lokasi $lokasi): array
     {
-        $jumlahPengungsi = DB::table('pengungsis')->where('lokasi_id', $lokasi->id)->count();
+        $jumlahPengungsi = Pengungsi::tabelDiPosko()->where('lokasi_id', $lokasi->id)->count();
         $stok            = $this->stokLogistik($lokasi, $jumlahPengungsi);
 
         return [
@@ -293,7 +294,7 @@ class OperasionalLokasiService
 
     private function ringkasanPengungsi(Lokasi $lokasi): array
     {
-        $q = fn () => DB::table('pengungsis')->where('lokasi_id', $lokasi->id);
+        $q = fn () => Pengungsi::tabelDiPosko()->where('lokasi_id', $lokasi->id);
 
         $total     = $q()->count();
         $kapasitas = (int) $lokasi->kapasitas_pengungsi;

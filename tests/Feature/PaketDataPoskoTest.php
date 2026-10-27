@@ -558,6 +558,49 @@ class PaketDataPoskoTest extends TestCase
             ->assertSee('Stok di HP minus');
     }
 
+    public function test_pengungsi_keluar_posko_tidak_dihitung_tapi_tetap_tercatat(): void
+    {
+        $this->impor($this->paket([
+            'pengungsi.csv' => [1 => [
+                'status_keberadaan' => 'pindah', 'keluar_pada' => '2026-10-22',
+                'keterangan_keluar' => 'Posko SDN 2',
+            ]],
+        ]));
+
+        $this->assertSame(1, Pengungsi::count(), 'yang pindah tidak dihitung');
+        $this->assertSame(2, Pengungsi::semuaKeberadaan()->count(), 'tetap tersimpan');
+        $budi = Pengungsi::semuaKeberadaan()->where('kode', self::BUDI)->sole();
+        $this->assertSame('pindah', $budi->status_keberadaan);
+        $this->assertSame('Posko SDN 2', $budi->keterangan_keluar);
+        $this->assertSame(1, Pengungsi::tabelDiPosko()->count());
+
+        $lokasi = Lokasi::first();
+        $this->assertSame(1, $lokasi->pengungsi()->count());
+        $this->actingAs($this->relawan->user)->get(route('pengungsi.index', $lokasi->id))
+            ->assertOk()
+            ->assertSee('Sudah keluar posko (1 orang)')
+            ->assertSee('Pindah ke posko lain');
+        $this->actingAs($this->relawan->user)->get(route('pengungsi.show', $budi->id))
+            ->assertOk()
+            ->assertSee('Pindah ke posko lain')
+            ->assertSee('Posko SDN 2');
+
+        // Paket lebih baru: Budi kembali ke posko -> dihitung lagi.
+        $this->impor($this->paket([
+            'info.csv'      => [['dibuat_pada' => '2026-10-24 08:00:00']],
+            'pengungsi.csv' => [1 => ['status_keberadaan' => 'di_posko', 'diubah_pada' => '2026-10-24 07:00:00']],
+        ]));
+        $this->assertSame(2, Pengungsi::count());
+        $this->assertNull($budi->fresh()->keterangan_keluar);
+    }
+
+    public function test_paket_lama_tanpa_kolom_keberadaan_tetap_diterima(): void
+    {
+        $this->impor($this->paket())->assertRedirect(route('admin.paket.index'));
+        $this->assertSame(2, Pengungsi::count());
+        $this->assertSame(['di_posko'], Pengungsi::pluck('status_keberadaan')->unique()->values()->all());
+    }
+
     public function test_file_bukan_paket_ditolak(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'zip') . '.zip';
