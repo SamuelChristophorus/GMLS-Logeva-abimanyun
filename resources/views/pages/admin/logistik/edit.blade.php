@@ -30,6 +30,10 @@
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="max-w-3xl w-full bg-green-100 text-green-700 p-4 rounded-xl">{{ session('success') }}</div>
+    @endif
+
     <!-- Form Card -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden max-w-3xl w-full">
         <div class="p-6 md:p-8">
@@ -132,6 +136,47 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    @if ($alias->isNotEmpty())
+    <div class="max-w-3xl w-full rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+        <p class="font-bold text-slate-800 mb-1"><i class="fas fa-tags text-slate-400 mr-1"></i> Nama lain barang ini</p>
+        <p>{{ $alias->join(', ') }}. Paket dari HP posko yang memakai nama ini otomatis dicatat ke "{{ $logistik->nama_item }}".</p>
+    </div>
+    @endif
+
+    <!-- Gabungkan barang ganda -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-3xl w-full p-6 md:p-8">
+        <h3 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                <i class="fas fa-object-group"></i>
+            </div>
+            Gabungkan ke barang lain
+        </h3>
+        <p class="text-sm text-slate-500 mb-5">
+            Untuk barang ganda (nama berbeda tapi barangnya sama). Semua catatan masuk/keluar dan stok tiap posko
+            dipindahkan ke barang tujuan, nama "{{ $logistik->nama_item }}" diingat supaya paket dari HP tetap masuk
+            ke barang tujuan, lalu barang ini dihapus. <b>Tidak bisa dibatalkan.</b>
+        </p>
+        <form action="{{ route('admin.logistik.gabung', $logistik->id) }}" method="POST"
+              onsubmit="return confirm('Gabungkan {{ addslashes($logistik->nama_item) }} ke barang yang dipilih? Tidak bisa dibatalkan.')"
+              class="flex flex-col sm:flex-row gap-3">
+            @csrf
+            <select name="tujuan_id" required
+                    class="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-rose-400 focus:ring-rose-400">
+                <option value="">Pilih barang tujuan…</option>
+                @foreach ($barangLain as $b)
+                    <option value="{{ $b->id }}">{{ $b->nama_item }} ({{ $b->satuan }})</option>
+                @endforeach
+            </select>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 py-3 rounded-xl shadow-sm">
+                <i class="fas fa-object-group"></i> Gabungkan
+            </button>
+        </form>
+        @error('tujuan_id')
+            <p class="text-sm text-rose-600 mt-2">{{ $message }}</p>
+        @enderror
     </div>
 </div>
 @endsection

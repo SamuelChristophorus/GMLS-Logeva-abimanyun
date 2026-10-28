@@ -550,6 +550,12 @@ class PaketDataPoskoService
 
         $kunciBarang = $kat && $nama ? $kat->id . '|' . N::kunci($nama) : null;
         $ada = $kunciBarang ? $logistik->get($kunciBarang) : null;
+        // Nama lama barang yang sudah digabung (alias) -> barang baku.
+        if (! $ada && $kunciBarang && ($baku = GabungLogistikService::dariAlias($nama))) {
+            $ada = $baku;
+            $kunciBarang = $baku->kategori_logistik_id . '|' . N::kunci($baku->nama_item);
+            $nama = $baku->nama_item;
+        }
 
         $status = match (true) {
             (bool) $error          => 'error',
@@ -614,7 +620,8 @@ class PaketDataPoskoService
         foreach ($this->csv($isi['stok.csv']) as $r) {
             $posko = $kePosko[$r['kode_posko']] ?? null;
             if (! $posko) continue;
-            $kunci = $r['kode_posko'] . '|' . N::kunci($r['nama_item']);
+            $namaBaku = GabungLogistikService::dariAlias($r['nama_item'])?->nama_item ?? $r['nama_item'];
+            $kunci = $r['kode_posko'] . '|' . N::kunci($namaBaku);
 
             $pusat = $posko['lokasi_id'] ? $this->stokPusat($posko['lokasi_id'], $r['nama_item']) : 0;
             $setelah = max(0, $pusat + ($selisih[$kunci] ?? 0));
@@ -630,6 +637,7 @@ class PaketDataPoskoService
     /** Jumlah stok pusat satu barang (dicocokkan dengan nama) di satu lokasi. */
     private function stokPusat(int $lokasiId, string $namaItem): int
     {
+        $namaItem = GabungLogistikService::dariAlias($namaItem)?->nama_item ?? $namaItem;
         return (int) StokLogistik::query()
             ->join('logistiks', 'logistiks.id', '=', 'stok_logistiks.logistik_id')
             ->where('stok_logistiks.lokasi_id', $lokasiId)

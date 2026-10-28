@@ -105,7 +105,7 @@ class PaketDataPoskoTest extends TestCase
                 ['kode' => self::MASUK, 'kode_posko' => self::POSKO, 'nama_item' => 'Beras', 'kategori' => 'Makanan',
                  'satuan' => 'kg', 'jumlah_masuk' => '50', 'sumber_bantuan' => 'BPBD', 'tanggal_masuk' => '2026-10-20',
                  'dicatat_oleh' => 'Andi', 'dibuat_pada' => '2026-10-20 10:00:00'],
-                ['kode' => self::SELIMUT, 'kode_posko' => self::POSKO, 'nama_item' => 'Selimut', 'kategori' => 'Perlengkapan Tidur',
+                ['kode' => self::SELIMUT, 'kode_posko' => self::POSKO, 'nama_item' => 'Terpal', 'kategori' => 'Perlengkapan Tidur',
                  'satuan' => 'buah', 'jumlah_masuk' => '40', 'sumber_bantuan' => 'BNPB', 'tanggal_masuk' => '2026-10-20',
                  'dibuat_pada' => '2026-10-20 10:00:00'],
             ],
@@ -116,7 +116,7 @@ class PaketDataPoskoTest extends TestCase
             ],
             'stok.csv' => [
                 ['kode_posko' => self::POSKO, 'nama_item' => 'Beras', 'satuan' => 'kg', 'jumlah_stok' => '38'],
-                ['kode_posko' => self::POSKO, 'nama_item' => 'Selimut', 'satuan' => 'buah', 'jumlah_stok' => '40'],
+                ['kode_posko' => self::POSKO, 'nama_item' => 'Terpal', 'satuan' => 'buah', 'jumlah_stok' => '40'],
             ],
             'petugas.csv' => [
                 ['kode_posko' => '', 'peran' => 'admin', 'nama' => 'Bu Rina', 'kontak' => 'rina@gmls.id'],
@@ -175,7 +175,7 @@ class PaketDataPoskoTest extends TestCase
             ->assertSee('Balai Desa')
             ->assertSee('Siti Aminah')
             ->assertSee('Pilih relawan')
-            ->assertSee('Selimut (Perlengkapan Tidur, buah)');
+            ->assertSee('Terpal (Perlengkapan Tidur, buah)');
 
         // Pratinjau tidak menyimpan apa pun.
         $this->assertSame(0, Lokasi::count());
@@ -211,7 +211,7 @@ class PaketDataPoskoTest extends TestCase
         $this->assertSame(1, StokKeluar::count());
         $this->assertStringContainsString('Dicatat oleh Andi', StokMasuk::where('kode', self::MASUK)->value('keterangan'));
         $this->assertSame(38, $this->stokBeras());
-        $this->assertDatabaseHas('logistiks', ['nama_item' => 'Selimut', 'satuan' => 'buah']);
+        $this->assertDatabaseHas('logistiks', ['nama_item' => 'Terpal', 'satuan' => 'buah']);
     }
 
     public function test_paket_yang_sama_diimpor_dua_kali_tidak_dobel(): void
@@ -224,7 +224,7 @@ class PaketDataPoskoTest extends TestCase
         $this->assertSame(2, StokMasuk::count());
         $this->assertSame(1, StokKeluar::count());
         $this->assertSame(38, $this->stokBeras(), 'stok tidak bertambah lagi');
-        $this->assertSame(1, Logistik::where('nama_item', 'Selimut')->count());
+        $this->assertSame(1, Logistik::where('nama_item', 'Terpal')->count());
     }
 
     public function test_paket_baru_memperbarui_dan_menghapus_lalu_paket_lama_tidak_mengembalikan(): void
@@ -599,6 +599,82 @@ class PaketDataPoskoTest extends TestCase
         $this->impor($this->paket())->assertRedirect(route('admin.paket.index'));
         $this->assertSame(2, Pengungsi::count());
         $this->assertSame(['di_posko'], Pengungsi::pluck('status_keberadaan')->unique()->values()->all());
+    }
+
+    public function test_barang_ganda_digabung_dan_paket_berikutnya_mengikuti(): void
+    {
+        $this->impor($this->paket());
+        $terpal = Logistik::where('nama_item', 'Terpal')->sole();
+        $selimut = Logistik::where('nama_item', 'Selimut')->sole();
+
+        $this->actingAs($this->admin)->get(route('admin.logistik.edit', $terpal->id))
+            ->assertOk()->assertSee('Gabungkan ke barang lain');
+        $this->actingAs($this->admin)
+            ->post(route('admin.logistik.gabung', $terpal->id), ['tujuan_id' => $selimut->id])
+            ->assertRedirect(route('admin.logistik.edit', $selimut->id));
+
+        $this->assertNull(Logistik::find($terpal->id), 'barang ganda dihapus');
+        $this->assertSame($selimut->id, StokMasuk::where('kode', self::SELIMUT)->value('logistik_id'));
+        $this->assertSame(40, (int) StokLogistik::where('logistik_id', $selimut->id)->value('jumlah_stok'));
+        $this->actingAs($this->admin)->get(route('admin.logistik.edit', $selimut->id))
+            ->assertSee('Nama lain barang ini')->assertSee('Terpal');
+
+        // Paket berikutnya dari HP masih memakai nama lama -> masuk ke Selimut.
+        $this->impor($this->paket([
+            'info.csv'         => [['dibuat_pada' => '2026-10-24 08:00:00']],
+            'barang_masuk.csv' => [1 => ['kode' => '99999999-0000-4000-8000-000000000001', 'jumlah_masuk' => '10']],
+            'stok.csv'         => [1 => ['jumlah_stok' => '50']],
+        ]));
+        $this->assertSame(0, Logistik::where('nama_item', 'Terpal')->count(), 'tidak dibuat ganda lagi');
+        $this->assertSame(50, (int) StokLogistik::where('logistik_id', $selimut->id)->value('jumlah_stok'));
+        $this->assertSame(0, \App\Models\SelisihStokPaket::count(), 'stok HP (nama lama) = stok pusat');
+    }
+
+    public function test_standarkan_master_seperti_di_hosting(): void
+    {
+        // Keadaan di hosting: Baju 2/hari, Pakaian Layak Pakai dari paket dengan stok di posko.
+        $this->impor($this->paket());
+        $lokasi = Lokasi::sole();
+        $baju = Logistik::where('nama_item', 'Baju')->sole();
+        $baju->update(['kebutuhan_harian' => 2]);
+        Logistik::where('nama_item', 'Air Mineral')->update(['kebutuhan_harian' => 3]);
+        $plp = Logistik::create(['kategori_logistik_id' => 3, 'nama_item' => 'Pakaian Layak Pakai', 'satuan' => 'paket']);
+        StokLogistik::create(['lokasi_id' => $lokasi->id, 'logistik_id' => $plp->id, 'jumlah_stok' => 0])->ubahJumlah(15);
+        StokLogistik::create(['lokasi_id' => $lokasi->id, 'logistik_id' => $baju->id, 'jumlah_stok' => 0])->ubahJumlah(5);
+
+        app(\App\Services\GabungLogistikService::class)->standarkan();
+
+        $this->assertNull(Logistik::find($plp->id));
+        $this->assertSame(20, (int) StokLogistik::where('logistik_id', $baju->id)->where('lokasi_id', $lokasi->id)->value('jumlah_stok'));
+        $this->assertNull($baju->fresh()->kebutuhan_harian, 'pakaian bukan kebutuhan harian');
+        $this->assertEquals(2.0, Logistik::where('nama_item', 'Air Mineral')->value('kebutuhan_harian'));
+        $this->assertSame($baju->id, \App\Services\GabungLogistikService::dariAlias('pakaian layak  pakai')?->id);
+        $this->assertSame(count(\App\Support\MasterLogistikBaku::DAFTAR) + 1, Logistik::count(), 'daftar baku + Terpal dari paket');
+
+        // Dijalankan lagi: tidak berubah.
+        app(\App\Services\GabungLogistikService::class)->standarkan();
+        $this->assertSame(count(\App\Support\MasterLogistikBaku::DAFTAR) + 1, Logistik::count());
+    }
+
+    public function test_barang_yang_sudah_dipakai_tidak_bisa_dihapus(): void
+    {
+        $this->impor($this->paket());
+        $beras = Logistik::where('nama_item', 'Beras')->sole();
+
+        $this->actingAs($this->admin)->delete(route('admin.logistik.destroy', $beras->id))
+            ->assertRedirect(route('admin.logistik.index'))
+            ->assertSessionHas('error', fn ($p) => str_contains($p, 'tidak bisa dihapus') && str_contains($p, 'Gabungkan'));
+        $this->assertNotNull($beras->fresh(), 'barang tetap ada');
+        $this->assertSame(38, $this->stokBeras(), 'catatan & stok tidak hilang');
+        $this->actingAs($this->admin)->followingRedirects()
+            ->delete(route('admin.logistik.destroy', $beras->id))
+            ->assertSee('tidak bisa dihapus');
+
+        // Barang yang belum pernah dipakai tetap bisa dihapus.
+        $baru = Logistik::create(['kategori_logistik_id' => 10, 'nama_item' => 'Barang Coba', 'satuan' => 'buah']);
+        $this->actingAs($this->admin)->delete(route('admin.logistik.destroy', $baru->id))
+            ->assertSessionHas('success');
+        $this->assertNull($baru->fresh());
     }
 
     public function test_file_bukan_paket_ditolak(): void

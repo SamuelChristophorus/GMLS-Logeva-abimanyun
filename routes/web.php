@@ -262,6 +262,8 @@ Route::prefix('admin')
         |--------------------------------------------------------------------------
         */
 
+        Route::post('/logistik/{logistik}/gabung', [AdminLogistikController::class, 'gabung'])
+            ->name('logistik.gabung');
         Route::resource('logistik', AdminLogistikController::class)
             ->except(['show']);
     });

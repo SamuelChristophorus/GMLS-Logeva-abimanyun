@@ -692,4 +692,10 @@ HP Induk menampilkan "Kemungkinan Dobel"; supervisor memilih:
   termasuk kode perangkat, jadi HP Anggota tetap mengenali HP Induk pengganti. Hanya dari versi database yang sama.
 - **Kunci otomatis** setelah 10 menit tidak dipakai.
 - **Laporan harian** berupa teks (SMS/radio), tanpa nama pengungsi.
+- **Master Logistik baku** (28 Okt 2026): daftar barang yang SAMA di website (`App\Support\MasterLogistikBaku`,
+  dipakai seeder & migration `2026_10_28_000000_standarkan_master_logistik`) dan aplikasi (`DataOptions.barangAwal`,
+  database aplikasi versi 10). Air Mineral 2 liter/orang/hari; pakaian tanpa kebutuhan harian.
+  Barang ganda digabung lewat **Master Logistik → Edit → Gabungkan ke barang lain**: catatan & stok pindah, nama lama
+  disimpan di `alias_logistiks`, dan paket dari HP yang masih memakai nama lama otomatis dicatat ke barang tujuan
+  ("Pakaian Layak Pakai" → "Baju"). Aplikasi memberi peringatan nama mirip saat admin HP menambah barang.
 

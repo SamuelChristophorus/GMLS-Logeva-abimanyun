@@ -2,27 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Services\GabungLogistikService;
 use Illuminate\Database\Seeder;
-use App\Models\Logistik;
 
+/** Master Logistik baku (sama dengan bawaan aplikasi offline). */
 class LogistikSeeder extends Seeder
 {
     public function run(): void
     {
-        Logistik::firstOrCreate(
-            ['nama_item' => 'Beras'],
-            [
-                'kategori_logistik_id' => 1,
-                'satuan' => 'kg',
-            ]
-        );
-
-        Logistik::firstOrCreate(
-            ['nama_item' => 'Air Mineral'],
-            [
-                'kategori_logistik_id' => 2,
-                'satuan' => 'liter',
-            ]
-        );
+        app(GabungLogistikService::class)->standarkan();
     }
 }

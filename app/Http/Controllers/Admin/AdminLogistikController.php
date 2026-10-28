@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Logistik;
 use App\Models\KategoriLogistik;
+use App\Services\GabungLogistikService;
+use DomainException;
 
 class AdminLogistikController extends Controller
 {
@@ -45,8 +47,33 @@ class AdminLogistikController extends Controller
     {
         $logistik = Logistik::findOrFail($id);
         $kategoris = KategoriLogistik::all();
+        // Untuk "Gabungkan ke barang lain" & daftar nama lama (alias).
+        $barangLain = Logistik::whereKeyNot($logistik->id)->orderBy('nama_item')->get();
+        $alias = \App\Models\AliasLogistik::where('logistik_id', $logistik->id)->orderBy('nama_alias')->pluck('nama_alias');
 
-        return view('pages.admin.logistik.edit', compact('logistik', 'kategoris'));
+        return view('pages.admin.logistik.edit', compact('logistik', 'kategoris', 'barangLain', 'alias'));
+    }
+
+    /**
+     * Gabungkan barang ganda ke barang lain: catatan masuk/keluar & stok tiap posko
+     * dipindahkan, nama lama diingat (paket dari HP dengan nama ini otomatis masuk
+     * ke barang tujuan), lalu barang ini dihapus.
+     */
+    public function gabung(Request $request, $id, GabungLogistikService $service)
+    {
+        $dari = Logistik::findOrFail($id);
+        $data = $request->validate(['tujuan_id' => 'required|integer|exists:logistiks,id']);
+        $ke = Logistik::findOrFail($data['tujuan_id']);
+
+        try {
+            $hasil = $service->gabung($dari, $ke);
+        } catch (DomainException $e) {
+            return back()->withErrors(['tujuan_id' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.logistik.edit', $ke->id)->with('success',
+            "\"{$dari->nama_item}\" digabung ke \"{$ke->nama_item}\": {$hasil['masuk']} catatan masuk, "
+            . "{$hasil['keluar']} catatan keluar, stok {$hasil['stok']} posko dipindahkan.");
     }
 
 public function update(Request $request, $id)
@@ -75,6 +102,18 @@ public function update(Request $request, $id)
     public function destroy($id)
     {
         $logistik = Logistik::findOrFail($id);
+
+        // Menghapus barang ikut menghapus SEMUA catatan masuk/keluar & stoknya di
+        // semua posko (cascade). Barang yang sudah dipakai harus digabung, bukan dihapus.
+        $dipakai = \App\Models\StokMasuk::where('logistik_id', $logistik->id)->count()
+            + \App\Models\StokKeluar::where('logistik_id', $logistik->id)->count()
+            + \App\Models\StokLogistik::where('logistik_id', $logistik->id)->count();
+        if ($dipakai > 0) {
+            return redirect()->route('admin.logistik.index')->with('error',
+                "\"{$logistik->nama_item}\" tidak bisa dihapus: sudah dipakai di {$dipakai} catatan/stok posko. "
+                . 'Kalau barangnya ganda, buka Edit lalu pakai "Gabungkan ke barang lain" supaya catatan & stok tidak hilang.');
+        }
+
         $logistik->delete();
 
         return redirect()->route('admin.logistik.index')
