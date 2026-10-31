@@ -50,6 +50,18 @@
                               file:mr-4 file:py-2.5 file:px-4 file:border-0 file:bg-blue-50 file:text-blue-700 file:font-bold hover:file:bg-blue-100">
                 <p class="text-xs text-slate-400 mt-2">Format .zip · maks. 10 MB</p>
 
+                <label class="block text-sm font-bold text-slate-700 mt-5 mb-1" for="kata_sandi">
+                    <i class="fas fa-lock text-slate-400 mr-1"></i> Kata sandi posko
+                    <span class="font-medium text-slate-400">(hanya untuk impor pertama dari posko itu)</span>
+                </label>
+                <input type="password" name="kata_sandi" id="kata_sandi" autocomplete="off"
+                       class="block w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-blue-400"
+                       placeholder="Dari supervisor posko (Settings → Kata Sandi Posko)">
+                <p class="text-xs text-slate-400 mt-1">Paket dari aplikasi dikunci karena berisi data pribadi. Kata sandi yang benar diingat website (terenkripsi), jadi paket berikutnya tidak perlu diketik lagi.</p>
+                @error('kata_sandi')
+                    <p class="text-sm text-rose-600 mt-2">{{ $message }}</p>
+                @enderror
+
                 @error('file')
                     <p class="text-sm text-rose-600 mt-2">{{ $message }}</p>
                 @enderror

@@ -698,4 +698,11 @@ HP Induk menampilkan "Kemungkinan Dobel"; supervisor memilih:
   Barang ganda digabung lewat **Master Logistik → Edit → Gabungkan ke barang lain**: catatan & stok pindah, nama lama
   disimpan di `alias_logistiks`, dan paket dari HP yang masih memakai nama lama otomatis dicatat ke barang tujuan
   ("Pakaian Layak Pakai" → "Baju"). Aplikasi memberi peringatan nama mirip saat admin HP menambah barang.
+- **Paket & cadangan terkunci kata sandi posko** (31 Okt 2026): file tetap `.zip` berisi `terkunci.enc` + `BACA.txt`.
+  `terkunci.enc` = `"LGVENC01"` | iterasi (uint32 BE) | salt 16 | iv 12 | ciphertext | tag 16; kunci =
+  PBKDF2-HMAC-SHA256(kata sandi, salt, iterasi, 32 byte), AES-256-GCM dengan AAD `"LGVENC01"`
+  (aplikasi `lib/utils/berkas_terkunci.dart`, website `App\Support\BerkasTerkunci`). Kata sandi dibuat supervisor di
+  HP Induk (Settings → Kata Sandi Posko), ikut ke HP Anggota lewat penyiapan/sinkron. Website meminta kata sandi
+  saat impor pertama, lalu menyimpannya terenkripsi (`kata_sandi_pakets`) dan mencobanya otomatis. Paket lama yang
+  tidak terkunci tetap diterima. File sinkron & penyiapan (antar-HP di posko) tidak dikunci.
 

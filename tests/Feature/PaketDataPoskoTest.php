@@ -677,6 +677,40 @@ class PaketDataPoskoTest extends TestCase
         $this->assertNull($baru->fresh());
     }
 
+    /**
+     * Paket ASLI yang dikunci aplikasi (tests/Fixtures/paket_terkunci_aplikasi.zip, dibuat
+     * oleh lib/utils/berkas_terkunci.dart, kata sandi posko "SandiPosko2026").
+     */
+    public function test_paket_terkunci_dari_aplikasi(): void
+    {
+        $kirim = fn () => new UploadedFile(base_path('tests/Fixtures/paket_terkunci_aplikasi.zip'),
+            'paket_PoskoTerkunci.zip', 'application/zip', null, true);
+
+        // Tanpa / salah kata sandi: ditolak, tidak ada yang tersimpan.
+        $this->actingAs($this->admin)->post(route('admin.paket.preview'), ['file' => $kirim()])
+            ->assertRedirect(route('admin.paket.index'));
+        $this->actingAs($this->admin)->post(route('admin.paket.preview'), ['file' => $kirim(), 'kata_sandi' => 'salah123'])
+            ->assertRedirect(route('admin.paket.index'));
+        $this->assertSame(0, Lokasi::count());
+
+        // Kata sandi benar: pratinjau & gabung berjalan seperti paket biasa.
+        $html = $this->actingAs($this->admin)
+            ->post(route('admin.paket.preview'), ['file' => $kirim(), 'kata_sandi' => 'SandiPosko2026'])
+            ->assertOk()->assertSee('Siti Aminah')->getContent();
+        preg_match('/name="relawan\[([0-9a-f-]{36})\]"/', $html, $m);
+        $this->actingAs($this->admin)->post(route('admin.paket.confirm'), ['relawan' => [$m[1] => $this->relawan->id]])
+            ->assertRedirect(route('admin.paket.index'));
+        $this->assertSame('Posko Terkunci', Lokasi::sole()->nama_lokasi);
+        $this->assertSame(1, Pengungsi::count());
+
+        // Kata sandi diingat terenkripsi: paket berikutnya tidak perlu diketik lagi.
+        $this->assertSame(['SandiPosko2026'], \App\Models\KataSandiPaket::semua());
+        $this->assertStringNotContainsString('SandiPosko2026',
+            (string) DB::table('kata_sandi_pakets')->value('kata_sandi'), 'tersimpan terenkripsi');
+        $this->actingAs($this->admin)->post(route('admin.paket.preview'), ['file' => $kirim()])
+            ->assertOk()->assertSee('Siti Aminah');
+    }
+
     public function test_file_bukan_paket_ditolak(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'zip') . '.zip';

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Import;
 
 use App\Http\Controllers\Controller;
+use App\Models\KataSandiPaket;
 use App\Models\Relawan;
 use App\Models\RiwayatImportPaket;
 use App\Models\SelisihStokPaket;
@@ -53,6 +54,7 @@ class PaketDataPoskoController extends Controller
     {
         $request->validate([
             'file' => 'required|file|mimes:zip|max:10240',
+            'kata_sandi' => 'nullable|string|max:100',
         ], [
             'file.required' => 'Pilih file paket (.zip) dari aplikasi.',
             'file.mimes'    => 'File harus berformat .zip (paket_....zip dari aplikasi).',
@@ -69,7 +71,10 @@ class PaketDataPoskoController extends Controller
         ]]);
 
         try {
-            $isi = $this->paket->bacaZip(Storage::disk('local')->path($path));
+            // Paket terkunci: kata sandi yang diketik dulu, lalu yang pernah berhasil.
+            $isi = $this->paket->bacaZip(Storage::disk('local')->path($path),
+                array_merge([(string) $request->input('kata_sandi')], KataSandiPaket::semua()));
+            session([self::SESSION . '.kataSandi' => $this->paket->kataSandiTerpakai]);
         } catch (DomainException $e) {
             $this->hapusFileSesi();
             Swal::toast($e->getMessage(), 'error')->timerProgressBar();
@@ -93,8 +98,13 @@ class PaketDataPoskoController extends Controller
         ]);
 
         try {
-            $isi = $this->paket->bacaZip(Storage::disk('local')->path($sesi['path']));
+            $isi = $this->paket->bacaZip(Storage::disk('local')->path($sesi['path']),
+                array_merge([(string) ($sesi['kataSandi'] ?? '')], KataSandiPaket::semua()));
             $hitung = $this->paket->simpan($isi, $data['relawan'] ?? [], $sesi['namaFile'], $request->user()?->id);
+            // Diingat (terenkripsi) supaya paket berikutnya dari posko ini langsung terbuka.
+            if ($this->paket->kataSandiTerpakai) {
+                KataSandiPaket::ingat($this->paket->kataSandiTerpakai);
+            }
         } catch (DomainException $e) {
             // Misal relawan posko baru belum dipilih: tampilkan lagi pratinjaunya.
             return $this->tampilkan($isi ?? [], $e->getMessage());

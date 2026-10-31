@@ -15,6 +15,7 @@ use App\Models\StatusLokasi;
 use App\Models\StokKeluar;
 use App\Models\StokLogistik;
 use App\Models\StokMasuk;
+use App\Support\BerkasTerkunci;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -89,7 +90,30 @@ class PaketDataPoskoService
      *
      * @throws DomainException jika file bukan paket yang benar
      */
-    public function bacaZip(string $path): array
+    /** Kata sandi posko yang membuka paket terakhir (null = paket tidak terkunci). */
+    public ?string $kataSandiTerpakai = null;
+
+    /**
+     * @param  string[]  $kataSandi  kata sandi posko yang dicoba (paket terkunci)
+     * @throws \App\Exceptions\KataSandiPaketException paket terkunci & kata sandi salah/kosong
+     */
+    public function bacaZip(string $path, array $kataSandi = []): array
+    {
+        $this->kataSandiTerpakai = null;
+        if (BerkasTerkunci::terkunci($path)) {
+            [$isiZip, $this->kataSandiTerpakai] = BerkasTerkunci::buka($path, $kataSandi);
+            $sementara = tempnam(sys_get_temp_dir(), 'paket');
+            file_put_contents($sementara, $isiZip);
+            try {
+                return $this->bacaZipBiasa($sementara);
+            } finally {
+                @unlink($sementara);
+            }
+        }
+        return $this->bacaZipBiasa($path);
+    }
+
+    private function bacaZipBiasa(string $path): array
     {
         $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
