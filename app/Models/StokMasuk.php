@@ -10,6 +10,7 @@ class StokMasuk extends Model
         'lokasi_id',
         'logistik_id',
         'relawan_id',
+        'donasi_id',
         'jumlah_masuk',
         'sumber_bantuan',
         'tanggal_masuk',
@@ -24,6 +25,11 @@ class StokMasuk extends Model
     public function logistik()
     {
         return $this->belongsTo(Logistik::class);
+    }
+
+    public function donasi()
+    {
+        return $this->belongsTo(Donasi::class);
     }
 
     public function relawan()

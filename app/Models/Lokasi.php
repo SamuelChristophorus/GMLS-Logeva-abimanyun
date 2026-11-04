@@ -123,6 +123,12 @@ class Lokasi extends Model
         return $nilai ? \Illuminate\Support\Carbon::parse($nilai) : null;
     }
 
+    /** Donasi (uang / logistik) yang ditujukan langsung ke posko ini. */
+    public function donasi()
+    {
+        return $this->hasMany(Donasi::class);
+    }
+
     public function permintaanOperasional()
     {
         return $this->hasMany(PermintaanOperasional::class);

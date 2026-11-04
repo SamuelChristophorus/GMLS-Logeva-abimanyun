@@ -28,6 +28,10 @@ use App\Http\Controllers\StokMasukController;
 use App\Http\Controllers\PermintaanOperasionalController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\StokKeluarController;
+use App\Http\Controllers\DonasiController;
+use App\Http\Controllers\KonfirmasiDonasiController;
+use App\Http\Controllers\Admin\DonasiController as AdminDonasiController;
+use App\Http\Controllers\Admin\GudangPusatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +48,18 @@ Route::get('/_deploy/{token}/{aksi}', \App\Http\Controllers\DeployController::cl
 
 Route::get('/lokasis', [UserLokasiController::class,'index'])->name('lokasi.index');
 Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.show');
+
+/*
+|--------------------------------------------------------------------------
+| DONASI (publik, donatur tidak perlu login)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/donasi', [DonasiController::class, 'index'])->name('donasi.index');
+Route::get('/donasi/baru', [DonasiController::class, 'create'])->name('donasi.create');
+Route::post('/donasi', [DonasiController::class, 'store'])->middleware('throttle:6,1')->name('donasi.store');
+Route::get('/donasi/lacak', [DonasiController::class, 'lacak'])->middleware('throttle:30,1')->name('donasi.lacak');
+Route::get('/donasi/laporan', [DonasiController::class, 'laporan'])->name('donasi.laporan');
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +90,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/lokasi-success', [UserLokasiController::class,'success'])->name('lokasi.success');
 
     Route::get('/my-lokasi', [UserLokasiController::class,'myLokasi'])->name('lokasi.mylokasi');
+
+    // Relawan posko tujuan mengonfirmasi barang donasi yang diantar langsung oleh donatur
+    Route::get('/donasi/{donasi}/konfirmasi', [KonfirmasiDonasiController::class, 'show'])->name('donasi.konfirmasi');
+    Route::post('/donasi/{donasi}/konfirmasi', [KonfirmasiDonasiController::class, 'terima'])->name('donasi.konfirmasi.terima');
+    Route::post('/donasi/{donasi}/tolak', [KonfirmasiDonasiController::class, 'tolak'])->name('donasi.konfirmasi.tolak');
 
 });
 
@@ -233,6 +254,26 @@ Route::prefix('admin')
             ->name('paket.batal');
         Route::get('/paket-data/selisih-stok', [PaketDataPoskoController::class, 'selisih'])
             ->name('paket.selisih');
+
+        /*
+        |--------------------------------------------------------------------------
+        | DONASI & GUDANG PUSAT GMLS
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/donasi', [AdminDonasiController::class, 'index'])->name('donasi.index');
+        Route::get('/donasi/{donasi}', [AdminDonasiController::class, 'show'])->name('donasi.show');
+        Route::get('/donasi/{donasi}/bukti', [AdminDonasiController::class, 'bukti'])->name('donasi.bukti');
+        Route::patch('/donasi/{donasi}/verifikasi', [AdminDonasiController::class, 'verifikasi'])->name('donasi.verifikasi');
+        Route::patch('/donasi/{donasi}/terima', [AdminDonasiController::class, 'terima'])->name('donasi.terima');
+        Route::patch('/donasi/{donasi}/tolak', [AdminDonasiController::class, 'tolak'])->name('donasi.tolak');
+        Route::post('/donasi/{donasi}/salurkan', [AdminDonasiController::class, 'salurkan'])->name('donasi.salurkan');
+        Route::post('/donasi/{donasi}/kabar', [AdminDonasiController::class, 'kabar'])->name('donasi.kabar');
+
+        Route::get('/gudang-pusat', [GudangPusatController::class, 'index'])->name('gudang.index');
+        Route::put('/gudang-pusat/{gudang}', [GudangPusatController::class, 'update'])->name('gudang.update');
+        Route::post('/gudang-pusat/{gudang}/masuk', [GudangPusatController::class, 'masuk'])->name('gudang.masuk');
+        Route::post('/gudang-pusat/{gudang}/kirim', [GudangPusatController::class, 'kirim'])->name('gudang.kirim');
 
         /*
         |--------------------------------------------------------------------------

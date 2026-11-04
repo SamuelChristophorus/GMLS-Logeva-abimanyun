@@ -27,6 +27,21 @@
             <i class="fas fa-campground w-5 text-center"></i> Manajemen Posko
         </a>
 
+        {{-- ===== Donasi (terbuka untuk semua, tanpa login) ===== --}}
+        <p class="px-2 pt-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Donasi</p>
+
+        <a href="{{ route('donasi.index') }}" class="{{ $menu(request()->routeIs('donasi.index', 'donasi.create')) }}">
+            <i class="fas fa-hand-holding-heart w-5 text-center"></i> Donasi
+        </a>
+
+        <a href="{{ route('donasi.lacak') }}" class="{{ $menu(request()->routeIs('donasi.lacak')) }}">
+            <i class="fas fa-magnifying-glass-location w-5 text-center"></i> Lacak Donasi
+        </a>
+
+        <a href="{{ route('donasi.laporan') }}" class="{{ $menu(request()->routeIs('donasi.laporan')) }}">
+            <i class="fas fa-file-invoice w-5 text-center"></i> Laporan Donasi
+        </a>
+
         {{-- ===== Akun ===== --}}
         <p class="px-2 pt-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Akun</p>
 

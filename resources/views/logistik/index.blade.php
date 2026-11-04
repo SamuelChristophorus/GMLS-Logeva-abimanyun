@@ -57,6 +57,30 @@
     $tanpaKebutuhan = $stok->whereNull('kebutuhan_harian');
 @endphp
 
+{{-- KIRIMAN DONASI YANG AKAN DATANG --}}
+@if ($donasiDatang->isNotEmpty())
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl mb-8 overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-100">
+            <h2 class="font-bold text-blue-900"><i class="fas fa-truck mr-1"></i> Kiriman donasi menuju posko ini</h2>
+            <p class="text-xs text-blue-700">Konfirmasi setelah barang sampai, maka stok posko otomatis bertambah dan donatur bisa melihatnya.</p>
+        </div>
+        <ul class="divide-y divide-blue-100">
+            @foreach ($donasiDatang as $d)
+                <li class="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="flex-1 min-w-0 text-sm">
+                        <p class="font-semibold text-slate-800">{{ $d->nama_donatur }} <span class="font-mono text-xs text-slate-500">{{ $d->kode }}</span></p>
+                        <p class="text-slate-600 truncate">{{ $d->ringkasan() }}</p>
+                        @if ($d->perkiraan_tiba)<p class="text-xs text-slate-500">Perkiraan tiba {{ $d->perkiraan_tiba->translatedFormat('d M Y') }}</p>@endif
+                    </div>
+                    <a href="{{ route('donasi.konfirmasi', $d) }}" class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+                        <i class="fas fa-clipboard-check"></i> Konfirmasi
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 {{-- RINGKASAN STATUS --}}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 

@@ -125,6 +125,16 @@ class StokMasukController extends Controller
     $bisaKelola = $lokasi->bisaDikelolaOleh(auth()->user());
     $isAdmin    = auth()->user()?->hasRole('admin') ?? false;
 
+    // Kiriman donasi barang yang ditujukan langsung ke posko ini dan belum dikonfirmasi
+    $donasiDatang = $bisaKelola
+        ? \App\Models\Donasi::with('items.logistik')
+            ->where('lokasi_id', $lokasi->id)
+            ->where('jenis', \App\Models\Donasi::LOGISTIK)
+            ->where('status', \App\Models\Donasi::MENUNGGU)
+            ->oldest()
+            ->get()
+        : collect();
+
     return view('logistik.index', compact(
         'lokasi',
         'stok',
@@ -133,7 +143,8 @@ class StokMasukController extends Controller
         'palingCepatHabis',
         'riwayat',
         'bisaKelola',
-        'isAdmin'
+        'isAdmin',
+        'donasiDatang'
     ));
 }
 }
