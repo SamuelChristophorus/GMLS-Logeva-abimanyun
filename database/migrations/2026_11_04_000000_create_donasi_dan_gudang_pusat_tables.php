@@ -18,12 +18,13 @@ use Illuminate\Support\Facades\Schema;
  *  - donasi_jejaks   : jejak (timeline) yang bisa dilacak donatur dengan kode donasi.
  *
  * Hanya MENAMBAH tabel; data lama tidak diubah.
+ * Aman dijalankan ulang jika sebelumnya gagal di tengah jalan (tabel yang sudah ada dilewati).
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('gudang_pusats', function (Blueprint $table) {
+        if (! Schema::hasTable('gudang_pusats')) Schema::create('gudang_pusats', function (Blueprint $table) {
             $table->id();
             $table->string('nama');
             $table->text('alamat')->nullable();
@@ -39,7 +40,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('stok_gudangs', function (Blueprint $table) {
+        if (! Schema::hasTable('stok_gudangs')) Schema::create('stok_gudangs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('gudang_pusat_id')->constrained()->cascadeOnDelete();
             $table->foreignId('logistik_id')->constrained('logistiks')->cascadeOnDelete();
@@ -48,7 +49,7 @@ return new class extends Migration
             $table->unique(['gudang_pusat_id', 'logistik_id']);
         });
 
-        Schema::create('donasis', function (Blueprint $table) {
+        if (! Schema::hasTable('donasis')) Schema::create('donasis', function (Blueprint $table) {
             $table->id();
             $table->string('kode', 20)->unique();                 // kode lacak, contoh: DN-7K3QX9MA
             $table->string('nama_donatur');
@@ -75,7 +76,7 @@ return new class extends Migration
             $table->index(['status', 'jenis']);
         });
 
-        Schema::create('donasi_items', function (Blueprint $table) {
+        if (! Schema::hasTable('donasi_items')) Schema::create('donasi_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('donasi_id')->constrained()->cascadeOnDelete();
             $table->foreignId('logistik_id')->constrained('logistiks')->cascadeOnDelete();
@@ -84,7 +85,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('penyaluran_donasis', function (Blueprint $table) {
+        if (! Schema::hasTable('penyaluran_donasis')) Schema::create('penyaluran_donasis', function (Blueprint $table) {
             $table->id();
             $table->foreignId('donasi_id')->constrained()->cascadeOnDelete();
             // Tujuan: posko (lokasi_id) atau gudang pusat (dana dibelikan barang untuk stok pusat)
@@ -100,7 +101,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('mutasi_gudangs', function (Blueprint $table) {
+        if (! Schema::hasTable('mutasi_gudangs')) Schema::create('mutasi_gudangs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('gudang_pusat_id')->constrained()->cascadeOnDelete();
             $table->foreignId('logistik_id')->constrained('logistiks')->cascadeOnDelete();
@@ -116,7 +117,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('donasi_jejaks', function (Blueprint $table) {
+        if (! Schema::hasTable('donasi_jejaks')) Schema::create('donasi_jejaks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('donasi_id')->constrained()->cascadeOnDelete();
             $table->string('judul');
@@ -130,12 +131,12 @@ return new class extends Migration
         });
 
         // Hubungkan barang masuk posko dengan donasi asalnya (untuk lacak & laporan)
-        Schema::table('stok_masuks', function (Blueprint $table) {
+        if (! Schema::hasColumn('stok_masuks', 'donasi_id')) Schema::table('stok_masuks', function (Blueprint $table) {
             $table->foreignId('donasi_id')->nullable()->after('relawan_id')->constrained()->nullOnDelete();
         });
 
         // Satu gudang pusat bawaan; data bisa diubah admin di menu Gudang Pusat GMLS
-        DB::table('gudang_pusats')->insert([
+        if (! DB::table('gudang_pusats')->exists()) DB::table('gudang_pusats')->insert([
             'nama'       => 'Posko Pusat GMLS',
             'alamat'     => 'Sekretariat Gugus Mitigasi Lebak Selatan',
             'created_at' => now(),

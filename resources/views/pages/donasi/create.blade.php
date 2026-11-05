@@ -39,8 +39,10 @@
         </div>
     @endif
 
-    <form action="{{ route('donasi.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('donasi.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6"
+          @submit="mengirim = true">
         @csrf
+        <input type="hidden" name="dibuka_pada" value="{{ $dibukaPada }}">
         {{-- Jebakan bot (tidak terlihat) --}}
         <div class="hidden" aria-hidden="true"><input type="text" name="situs_web" tabindex="-1" autocomplete="off"></div>
 
@@ -205,8 +207,17 @@
             </div>
         </section>
 
-        <button type="submit" class="w-full py-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-lg shadow-lg">
-            <i class="fas fa-paper-plane mr-2"></i> Kirim Donasi
+        {{-- 5. VERIFIKASI (pengaman dari donasi iseng / bot) --}}
+        <section class="bg-white rounded-2xl border border-slate-200 p-6">
+            <label for="jawaban" class="block mb-2 text-sm font-semibold text-slate-700">5. Pastikan Anda bukan robot: berapa hasil <span class="font-mono text-base text-slate-900">{{ $soal }}</span>?</label>
+            <input id="jawaban" type="text" name="jawaban" inputmode="numeric" pattern="[0-9]*" maxlength="2" required autocomplete="off" class="{{ $input }} !w-32">
+            <p class="text-xs text-slate-400 mt-2">Donasi palsu akan ditolak oleh GMLS dan tidak tampil di laporan publik.</p>
+        </section>
+
+        <button type="submit" :disabled="mengirim" :class="mengirim ? 'opacity-60 cursor-wait' : ''"
+                class="w-full py-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-lg shadow-lg">
+            <span x-show="! mengirim"><i class="fas fa-paper-plane mr-2"></i> Kirim Donasi</span>
+            <span x-show="mengirim" x-cloak><i class="fas fa-spinner fa-spin mr-2"></i> Mengirim...</span>
         </button>
     </form>
 </div>
@@ -217,6 +228,7 @@
     function formDonasi(awal) {
         return {
             ...awal,
+            mengirim: false, // tombol kirim dikunci setelah diklik, supaya tidak terkirim dua kali
             alamatPosko() {
                 const p = this.poskos.find(p => String(p.id) === String(this.posko));
                 return p ? `${p.nama} · ${p.alamat}${p.desa ? ', ' + p.desa : ''}` : '';

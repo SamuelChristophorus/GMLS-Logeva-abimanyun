@@ -21,6 +21,11 @@ use Illuminate\Validation\ValidationException;
  */
 class DonasiController extends Controller
 {
+    private const SESI_JAWABAN = 'donasi_jawaban';
+    private const DETIK_MINIMAL = 4;            // form diisi lebih cepat dari ini = bot
+    private const JAM_KEDALUWARSA = 3;          // form yang dibuka terlalu lama harus dimuat ulang
+    private const MAKS_MENUNGGU_PER_KONTAK = 3; // donasi belum dicek per no. HP / email
+
     public function __construct(private DonasiService $service) {}
 
     /** Beranda donasi: ringkasan, posko yang butuh bantuan, donasi terbaru. */
@@ -52,7 +57,13 @@ class DonasiController extends Controller
 
         $pilihPosko = $poskos->firstWhere('id', (int) $request->query('posko'))?->id;
 
-        return view('pages.donasi.create', compact('gudang', 'poskos', 'logistiks', 'kebutuhan', 'pilihPosko'));
+        // Pengaman: soal hitungan sederhana (jawaban disimpan di session) + waktu form dibuka
+        [$a, $b] = [random_int(1, 9), random_int(1, 9)];
+        $request->session()->put(self::SESI_JAWABAN, $a + $b);
+        $soal       = "{$a} + {$b}";
+        $dibukaPada = encrypt(now()->timestamp);
+
+        return view('pages.donasi.create', compact('gudang', 'poskos', 'logistiks', 'kebutuhan', 'pilihPosko', 'soal', 'dibukaPada'));
     }
 
     public function store(Request $request)
@@ -62,30 +73,58 @@ class DonasiController extends Controller
             abort(422);
         }
 
+        $this->cekManusia($request);
+
+        // Kontak dirapikan dulu (spasi / strip dihapus) supaya batas per kontak tidak bisa diakali
+        $request->merge(['kontak' => self::rapikanKontak((string) $request->input('kontak'))]);
+
+        $tanpaLink = 'not_regex:/(https?:\/\/|www\.|<[a-z\/])/i';
+
         $data = $request->validate([
-            'nama_donatur'        => 'required|string|max:120',
+            'nama_donatur'        => ['required', 'string', 'min:3', 'max:120', $tanpaLink],
             'anonim'              => 'nullable|boolean',
-            'kontak'              => 'required|string|max:100',
+            'kontak'              => ['required', 'string', 'max:100', function ($attr, $nilai, $gagal) {
+                $hp    = preg_match('/^(\+62|62|0)8\d{7,12}$/', $nilai);
+                $email = filter_var($nilai, FILTER_VALIDATE_EMAIL);
+                if (! $hp && ! $email) {
+                    $gagal('Isi nomor HP (contoh 081234567890) atau alamat email yang benar.');
+                }
+            }],
             'jenis'               => ['required', Rule::in([Donasi::UANG, Donasi::LOGISTIK])],
             'tujuan'              => ['required', Rule::in([Donasi::KE_PUSAT, Donasi::KE_POSKO])],
             'lokasi_id'           => ['nullable', 'required_if:tujuan,' . Donasi::KE_POSKO, Rule::in($this->poskoTujuan()->pluck('id'))],
-            'nominal'             => 'nullable|required_if:jenis,' . Donasi::UANG . '|integer|min:10000|max:100000000000',
+            'nominal'             => 'nullable|required_if:jenis,' . Donasi::UANG . '|integer|min:10000|max:1000000000',
             'bukti_transfer'      => 'nullable|required_if:jenis,' . Donasi::UANG . '|image|mimes:jpg,jpeg,png,webp|max:4096',
             'items'               => 'nullable|array|max:20',
             'items.*.logistik_id' => 'nullable|exists:logistiks,id',
-            'items.*.jumlah'      => 'nullable|integer|min:1|max:1000000',
-            'perkiraan_tiba'      => 'nullable|date|after_or_equal:today',
-            'pengirim'            => 'nullable|string|max:120',
-            'pesan'               => 'nullable|string|max:500',
+            'items.*.jumlah'      => 'nullable|integer|min:1|max:100000',
+            'perkiraan_tiba'      => 'nullable|date|after_or_equal:today|before_or_equal:+3 months',
+            'pengirim'            => ['nullable', 'string', 'max:120', $tanpaLink],
+            'pesan'               => ['nullable', 'string', 'max:500', $tanpaLink],
         ], [
-            'lokasi_id.required_if'      => 'Pilih posko tujuan donasi.',
-            'lokasi_id.in'               => 'Posko yang dipilih tidak sedang menerima bantuan.',
-            'nominal.required_if'        => 'Isi jumlah uang yang ditransfer.',
-            'nominal.min'                => 'Donasi uang minimal Rp 10.000.',
-            'bukti_transfer.required_if' => 'Unggah foto / tangkapan layar bukti transfer.',
-            'bukti_transfer.image'       => 'Bukti transfer harus berupa gambar (JPG / PNG).',
-            'perkiraan_tiba.after_or_equal' => 'Perkiraan tiba tidak boleh sebelum hari ini.',
+            'nama_donatur.min'               => 'Nama minimal 3 huruf.',
+            'nama_donatur.not_regex'         => 'Nama tidak boleh berisi link.',
+            'pengirim.not_regex'             => 'Kolom pengirim tidak boleh berisi link.',
+            'pesan.not_regex'                => 'Pesan tidak boleh berisi link.',
+            'lokasi_id.required_if'          => 'Pilih posko tujuan donasi.',
+            'lokasi_id.in'                   => 'Posko yang dipilih tidak sedang menerima bantuan.',
+            'nominal.required_if'            => 'Isi jumlah uang yang ditransfer.',
+            'nominal.min'                    => 'Donasi uang minimal Rp 10.000.',
+            'nominal.max'                    => 'Untuk donasi di atas Rp 1 miliar, silakan hubungi GMLS langsung.',
+            'bukti_transfer.required_if'     => 'Unggah foto / tangkapan layar bukti transfer.',
+            'bukti_transfer.image'           => 'Bukti transfer harus berupa gambar (JPG / PNG).',
+            'bukti_transfer.max'             => 'Ukuran bukti transfer maksimal 4 MB.',
+            'perkiraan_tiba.after_or_equal'  => 'Perkiraan tiba tidak boleh sebelum hari ini.',
+            'perkiraan_tiba.before_or_equal' => 'Perkiraan tiba maksimal 3 bulan dari sekarang.',
         ]);
+
+        // Satu kontak tidak boleh menumpuk banyak donasi yang belum dicek
+        $menunggu = Donasi::where('kontak', $data['kontak'])->where('status', Donasi::MENUNGGU)->count();
+        if ($menunggu >= self::MAKS_MENUNGGU_PER_KONTAK) {
+            throw ValidationException::withMessages([
+                'kontak' => "Masih ada {$menunggu} donasi Anda yang menunggu dicek GMLS. Tunggu sampai dicek, atau hubungi GMLS.",
+            ]);
+        }
 
         // Baris barang yang kosong diabaikan; barang yang sama digabung
         $items = collect($data['items'] ?? [])
@@ -165,6 +204,42 @@ class DonasiController extends Controller
     }
 
     /* ---------------------------------------------------------------- */
+
+    /** Cek soal hitungan & lama pengisian form. Soal hanya berlaku sekali. */
+    private function cekManusia(Request $request): void
+    {
+        $jawaban = $request->session()->pull(self::SESI_JAWABAN);
+
+        try {
+            $dibuka = (int) decrypt((string) $request->input('dibuka_pada'));
+        } catch (\Throwable) {
+            $dibuka = 0;
+        }
+
+        $lama = now()->timestamp - $dibuka;
+
+        if ($jawaban === null || $dibuka === 0 || $lama > self::JAM_KEDALUWARSA * 3600) {
+            throw ValidationException::withMessages(['jawaban' => 'Form sudah kedaluwarsa. Silakan isi ulang.']);
+        }
+
+        if ($lama < self::DETIK_MINIMAL) {
+            throw ValidationException::withMessages(['jawaban' => 'Form dikirim terlalu cepat. Silakan coba lagi.']);
+        }
+
+        if (trim((string) $request->input('jawaban')) !== (string) $jawaban) {
+            throw ValidationException::withMessages(['jawaban' => 'Jawaban hitungan salah. Silakan coba lagi.']);
+        }
+    }
+
+    /** "0812-3456 7890" -> "081234567890"; email -> huruf kecil. */
+    public static function rapikanKontak(string $kontak): string
+    {
+        $kontak = trim($kontak);
+
+        return str_contains($kontak, '@')
+            ? mb_strtolower($kontak)
+            : preg_replace('/[\s\-\.()]/', '', $kontak);
+    }
 
     /** Posko yang bisa dipilih donatur: tampil di publik & sedang beroperasi. */
     private function poskoTujuan()

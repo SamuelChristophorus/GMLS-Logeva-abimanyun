@@ -36,8 +36,18 @@ class DeployController extends Controller
         [$perintah, $opsi] = self::PERINTAH[$aksi];
 
         @set_time_limit(120);
-        $kode   = Artisan::call($perintah, $opsi);
-        $output = Artisan::output();
+
+        // Tampilkan pesan error aslinya (hanya pemegang token yang sampai sini),
+        // karena di hosting tanpa terminal halaman "500 Server Error" tidak memberi petunjuk.
+        try {
+            $kode   = Artisan::call($perintah, $opsi);
+            $output = Artisan::output();
+        } catch (\Throwable $e) {
+            $kode   = 1;
+            $output = Artisan::output()
+                . "\nERROR: " . get_class($e) . "\n" . $e->getMessage() . "\n"
+                . 'di ' . str_replace(base_path(), '', $e->getFile()) . ':' . $e->getLine() . "\n";
+        }
 
         return response(
             "$ php artisan $perintah " . implode(' ', array_keys($opsi)) . "\n\n"

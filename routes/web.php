@@ -57,7 +57,7 @@ Route::get('/lokasi/{id}', [UserLokasiController::class,'show'])->name('lokasi.s
 
 Route::get('/donasi', [DonasiController::class, 'index'])->name('donasi.index');
 Route::get('/donasi/baru', [DonasiController::class, 'create'])->name('donasi.create');
-Route::post('/donasi', [DonasiController::class, 'store'])->middleware('throttle:6,1')->name('donasi.store');
+Route::post('/donasi', [DonasiController::class, 'store'])->middleware('throttle:donasi')->name('donasi.store');
 Route::get('/donasi/lacak', [DonasiController::class, 'lacak'])->middleware('throttle:30,1')->name('donasi.lacak');
 Route::get('/donasi/laporan', [DonasiController::class, 'laporan'])->name('donasi.laporan');
 

@@ -73,6 +73,92 @@ class DonasiTest extends TestCase
         return (int) StokLogistik::where('lokasi_id', $this->posko->id)->where('logistik_id', $barang->id)->value('jumlah_stok');
     }
 
+    /** Isi form donasi seperti manusia: buka form dulu, tunggu, jawab soal hitungan. */
+    private function kirimDonasi(array $data, array $ubahPengaman = [], ?string $ip = null)
+    {
+        // Setiap kiriman dari IP berbeda, kecuali tes batas per IP (supaya tidak kena rate limit)
+        $this->withServerVariables(['REMOTE_ADDR' => $ip ?? '10.0.' . random_int(0, 255) . '.' . random_int(1, 254)]);
+
+        $this->get(route('donasi.create'))->assertOk();
+
+        return $this->post(route('donasi.store'), $data + $ubahPengaman + [
+            'jawaban'     => session('donasi_jawaban'),
+            'dibuka_pada' => encrypt(now()->timestamp - 30),
+        ]);
+    }
+
+    private function donasiBarangValid(array $ubah = []): array
+    {
+        return $ubah + [
+            'nama_donatur' => 'Andi Wijaya', 'kontak' => '081211112222', 'jenis' => 'logistik', 'tujuan' => 'pusat',
+            'items' => [['logistik_id' => $this->beras->id, 'jumlah' => 5]],
+        ];
+    }
+
+    public function test_pengaman_form_donasi_dari_bot_dan_orang_iseng(): void
+    {
+        // Jawaban hitungan salah
+        $this->kirimDonasi($this->donasiBarangValid(), ['jawaban' => '999'])->assertSessionHasErrors('jawaban');
+
+        // Dikirim terlalu cepat (bot)
+        $this->kirimDonasi($this->donasiBarangValid(), ['dibuka_pada' => encrypt(now()->timestamp)])->assertSessionHasErrors('jawaban');
+
+        // Form kedaluwarsa / dipalsukan
+        $this->kirimDonasi($this->donasiBarangValid(), ['dibuka_pada' => encrypt(now()->timestamp - 4 * 3600)])->assertSessionHasErrors('jawaban');
+        $this->kirimDonasi($this->donasiBarangValid(), ['dibuka_pada' => 'palsu'])->assertSessionHasErrors('jawaban');
+
+        // Langsung POST tanpa membuka form (tidak ada soal di session)
+        $this->post(route('donasi.store'), $this->donasiBarangValid() + ['jawaban' => '5', 'dibuka_pada' => encrypt(now()->timestamp - 30)])
+            ->assertSessionHasErrors('jawaban');
+
+        // Kolom jebakan bot terisi
+        $this->kirimDonasi($this->donasiBarangValid(['situs_web' => 'http://spam.test']))->assertStatus(422);
+
+        // Kontak asal-asalan & link spam
+        $this->kirimDonasi($this->donasiBarangValid(['kontak' => 'asdf']))->assertSessionHasErrors('kontak');
+        $this->kirimDonasi($this->donasiBarangValid(['pesan' => 'promo murah https://spam.test']))->assertSessionHasErrors('pesan');
+        $this->kirimDonasi($this->donasiBarangValid(['nama_donatur' => 'www.judi.test']))->assertSessionHasErrors('nama_donatur');
+
+        $this->assertSame(0, Donasi::count());
+    }
+
+    public function test_batas_donasi_menunggu_per_kontak_dan_per_ip(): void
+    {
+        // Kontak ditulis dengan format berbeda tetap dianggap sama
+        foreach (['0812-1111-2222', '0812 1111 2222', '081211112222'] as $kontak) {
+            $this->kirimDonasi($this->donasiBarangValid(['kontak' => $kontak]))->assertSessionHasNoErrors();
+        }
+        $this->assertSame(['081211112222'], Donasi::distinct()->pluck('kontak')->all());
+
+        // Donasi ke-4 dari kontak yang sama ditahan sampai yang lama dicek admin
+        $this->kirimDonasi($this->donasiBarangValid())->assertSessionHasErrors('kontak');
+        $this->assertSame(3, Donasi::count());
+
+        // Dari satu IP: 5 kiriman dalam 10 menit boleh, ke-6 diblokir
+        foreach (range(1, 5) as $i) {
+            $this->kirimDonasi($this->donasiBarangValid(['kontak' => "08129999000{$i}"]), [], '10.9.9.9')->assertSessionHasNoErrors();
+        }
+        $this->kirimDonasi($this->donasiBarangValid(['kontak' => '081299990006']), [], '10.9.9.9')
+            ->assertSessionHasErrors(['jawaban' => 'Terlalu banyak donasi dikirim dalam waktu singkat. Silakan coba lagi nanti atau hubungi GMLS.']);
+        $this->assertSame(8, Donasi::count());
+    }
+
+    public function test_konfirmasi_barang_tidak_bisa_menggelembungkan_stok(): void
+    {
+        $this->kirimDonasi([
+            'nama_donatur' => 'Ibu Sari', 'kontak' => '085700001111', 'jenis' => 'logistik', 'tujuan' => 'posko',
+            'lokasi_id' => $this->posko->id, 'items' => [['logistik_id' => $this->air->id, 'jumlah' => 10]],
+        ]);
+        $donasi = Donasi::with('items')->firstOrFail();
+
+        $this->actingAs($this->relawanUser)->post(route('donasi.konfirmasi.terima', $donasi), [
+            'diterima' => [$donasi->items->first()->id => 1000],
+        ])->assertSessionHasErrors('diterima');
+
+        $this->assertSame(0, $this->stokPosko($this->air));
+        $this->assertSame(Donasi::MENUNGGU, $donasi->fresh()->status);
+    }
+
     public function test_halaman_publik_bisa_dibuka_tanpa_login(): void
     {
         $this->get(route('donasi.index'))->assertOk()->assertSee('Donasi Sekarang');
@@ -83,7 +169,7 @@ class DonasiTest extends TestCase
 
     public function test_donasi_uang_ke_posko_diverifikasi_lalu_dibelikan_barang(): void
     {
-        $this->post(route('donasi.store'), [
+        $this->kirimDonasi([
             'nama_donatur' => 'Budi Santoso', 'kontak' => '081234567890', 'anonim' => 1,
             'jenis' => 'uang', 'tujuan' => 'posko', 'lokasi_id' => $this->posko->id,
             'nominal' => 500000, 'bukti_transfer' => UploadedFile::fake()->image('bukti.jpg'),
@@ -136,7 +222,7 @@ class DonasiTest extends TestCase
 
     public function test_donasi_barang_ke_pusat_masuk_gudang_lalu_dikirim_ke_posko(): void
     {
-        $this->post(route('donasi.store'), [
+        $this->kirimDonasi([
             'nama_donatur' => 'PT Maju Jaya', 'kontak' => 'csr@majujaya.co.id',
             'jenis' => 'logistik', 'tujuan' => 'pusat',
             'items' => [
@@ -188,7 +274,7 @@ class DonasiTest extends TestCase
 
     public function test_donasi_barang_langsung_ke_posko_dikonfirmasi_relawan_posko(): void
     {
-        $this->post(route('donasi.store'), [
+        $this->kirimDonasi([
             'nama_donatur' => 'Ibu Sari', 'kontak' => '085700001111',
             'jenis' => 'logistik', 'tujuan' => 'posko', 'lokasi_id' => $this->posko->id,
             'items' => [['logistik_id' => $this->air->id, 'jumlah' => 25]],
@@ -225,21 +311,21 @@ class DonasiTest extends TestCase
     {
         // Tanpa rekening, donasi uang ditolak
         GudangPusat::utama()->update(['nomor_rekening' => null]);
-        $this->post(route('donasi.store'), [
-            'nama_donatur' => 'A', 'kontak' => '0812', 'jenis' => 'uang', 'tujuan' => 'pusat',
+        $this->kirimDonasi([
+            'nama_donatur' => 'Andi', 'kontak' => '081211112222', 'jenis' => 'uang', 'tujuan' => 'pusat',
             'nominal' => 50000, 'bukti_transfer' => UploadedFile::fake()->image('b.jpg'),
         ])->assertSessionHasErrors('jenis');
 
         // Barang wajib diisi
-        $this->post(route('donasi.store'), [
-            'nama_donatur' => 'A', 'kontak' => '0812', 'jenis' => 'logistik', 'tujuan' => 'pusat',
+        $this->kirimDonasi([
+            'nama_donatur' => 'Andi', 'kontak' => '081211112222', 'jenis' => 'logistik', 'tujuan' => 'pusat',
             'items' => [['logistik_id' => '', 'jumlah' => '']],
         ])->assertSessionHasErrors('items');
 
         // Posko yang tidak beroperasi tidak bisa dipilih
         $this->posko->update(['status_operasional' => Lokasi::OPS_SELESAI]);
-        $this->post(route('donasi.store'), [
-            'nama_donatur' => 'A', 'kontak' => '0812', 'jenis' => 'logistik', 'tujuan' => 'posko', 'lokasi_id' => $this->posko->id,
+        $this->kirimDonasi([
+            'nama_donatur' => 'Andi', 'kontak' => '081211112222', 'jenis' => 'logistik', 'tujuan' => 'posko', 'lokasi_id' => $this->posko->id,
             'items' => [['logistik_id' => $this->beras->id, 'jumlah' => 5]],
         ])->assertSessionHasErrors('lokasi_id');
 
@@ -248,8 +334,8 @@ class DonasiTest extends TestCase
 
     public function test_admin_tolak_donasi_dan_halaman_admin_terbuka(): void
     {
-        $this->post(route('donasi.store'), [
-            'nama_donatur' => 'Donatur Zqxw', 'kontak' => '0811', 'jenis' => 'uang', 'tujuan' => 'pusat',
+        $this->kirimDonasi([
+            'nama_donatur' => 'Donatur Zqxw', 'kontak' => '081133334444', 'jenis' => 'uang', 'tujuan' => 'pusat',
             'nominal' => 100000, 'bukti_transfer' => UploadedFile::fake()->image('b.jpg'),
         ]);
         $donasi = Donasi::firstOrFail();

@@ -98,9 +98,9 @@ class DonasiService
     /** Admin mengecek transfer di rekening GMLS. */
     public function verifikasiUang(Donasi $donasi, int $nominalDiterima, User $oleh, ?string $catatan): void
     {
-        $this->pastikanMenunggu($donasi);
-
         DB::transaction(function () use ($donasi, $nominalDiterima, $oleh, $catatan) {
+            $this->kunciMenunggu($donasi);
+
             $donasi->update([
                 'nominal_diterima'  => $nominalDiterima,
                 'status'            => Donasi::DITERIMA,
@@ -126,14 +126,23 @@ class DonasiService
      */
     public function terimaBarang(Donasi $donasi, array $diterima, User $oleh, ?string $catatan): void
     {
-        $this->pastikanMenunggu($donasi);
-
         DB::transaction(function () use ($donasi, $diterima, $oleh, $catatan) {
+            $this->kunciMenunggu($donasi);
+
             $donasi->load('items.logistik');
             $tanggal = now()->toDateString();
 
             foreach ($donasi->items as $item) {
                 $jumlah = max(0, (int) ($diterima[$item->id] ?? 0));
+
+                // Tidak boleh melebihi yang dijanjikan donatur, supaya stok tidak bisa digelembungkan
+                if ($jumlah > $item->jumlah) {
+                    throw ValidationException::withMessages([
+                        'diterima' => "Jumlah {$item->logistik->nama_item} yang diterima melebihi yang dikirim donatur ({$item->jumlah}). "
+                            . 'Kelebihannya catat lewat Barang Masuk.',
+                    ]);
+                }
+
                 $item->update(['jumlah_diterima' => $jumlah]);
 
                 if ($jumlah === 0) {
@@ -186,17 +195,19 @@ class DonasiService
 
     public function tolak(Donasi $donasi, User $oleh, ?string $alasan): void
     {
-        $this->pastikanMenunggu($donasi);
+        DB::transaction(function () use ($donasi, $oleh, $alasan) {
+            $this->kunciMenunggu($donasi);
 
-        $donasi->update([
-            'status'            => Donasi::DITOLAK,
-            'diverifikasi_oleh' => $oleh->id,
-            'diverifikasi_pada' => now(),
-            'catatan_admin'     => $alasan,
-        ]);
+            $donasi->update([
+                'status'            => Donasi::DITOLAK,
+                'diverifikasi_oleh' => $oleh->id,
+                'diverifikasi_pada' => now(),
+                'catatan_admin'     => $alasan,
+            ]);
 
-        $this->jejak($donasi, $donasi->isUang() ? 'Transfer belum ditemukan' : 'Barang tidak diterima',
-            $alasan ?: 'Silakan hubungi GMLS dengan menyebutkan kode donasi ini.', 'fa-times-circle', 'red', $oleh);
+            $this->jejak($donasi, $donasi->isUang() ? 'Transfer belum ditemukan' : 'Barang tidak diterima',
+                $alasan ?: 'Silakan hubungi GMLS dengan menyebutkan kode donasi ini.', 'fa-times-circle', 'red', $oleh);
+        });
     }
 
     /* =========================================================
@@ -438,9 +449,15 @@ class DonasiService
         return 'Donasi ' . $donasi->namaTampil() . " ({$donasi->kode})";
     }
 
-    private function pastikanMenunggu(Donasi $donasi): void
+    /**
+     * Kunci baris donasi lalu cek statusnya dari database (bukan dari objek lama), supaya
+     * tombol yang terklik dua kali / dua petugas bersamaan tidak menambah stok dua kali.
+     */
+    private function kunciMenunggu(Donasi $donasi): void
     {
-        if (! $donasi->isMenunggu()) {
+        $status = Donasi::whereKey($donasi->id)->lockForUpdate()->value('status');
+
+        if ($status !== Donasi::MENUNGGU) {
             throw ValidationException::withMessages(['status' => 'Donasi ini sudah diproses sebelumnya.']);
         }
     }
