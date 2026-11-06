@@ -177,6 +177,10 @@ Route::prefix('admin')
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
 
+        // Untuk aplikasi offline: ZIP berisi posko.csv + foto (semua posko, atau ?lokasi=ID)
+        Route::get('/lokasi/export-aplikasi', [LokasiController::class, 'exportAplikasi'])
+            ->name('lokasi.export-aplikasi');
+
         // Setujui / tolak permintaan mulai-tutup operasi dari relawan
         Route::patch('/permintaan-operasional/{permintaan}/setujui', [PermintaanOperasionalController::class, 'setujui'])
             ->name('permintaan-operasional.setujui');
@@ -252,6 +256,9 @@ Route::prefix('admin')
             ->name('paket.confirm');
         Route::post('/paket-data/batal', [PaketDataPoskoController::class, 'batal'])
             ->name('paket.batal');
+        // Website -> HP: paket posko terkunci kata sandi untuk diimpor di aplikasi
+        Route::post('/paket-data/export', [PaketDataPoskoController::class, 'export'])
+            ->name('paket.export');
         Route::get('/paket-data/selisih-stok', [PaketDataPoskoController::class, 'selisih'])
             ->name('paket.selisih');
 
@@ -271,9 +278,11 @@ Route::prefix('admin')
         Route::post('/donasi/{donasi}/kabar', [AdminDonasiController::class, 'kabar'])->name('donasi.kabar');
 
         Route::get('/gudang-pusat', [GudangPusatController::class, 'index'])->name('gudang.index');
+        Route::get('/gudang-pusat/stok-posko', [GudangPusatController::class, 'stokPosko'])->name('gudang.stok-posko');
         Route::put('/gudang-pusat/{gudang}', [GudangPusatController::class, 'update'])->name('gudang.update');
         Route::post('/gudang-pusat/{gudang}/masuk', [GudangPusatController::class, 'masuk'])->name('gudang.masuk');
         Route::post('/gudang-pusat/{gudang}/kirim', [GudangPusatController::class, 'kirim'])->name('gudang.kirim');
+        Route::post('/gudang-pusat/{gudang}/kirim-banyak', [GudangPusatController::class, 'kirimBanyak'])->name('gudang.kirim-banyak');
 
         /*
         |--------------------------------------------------------------------------

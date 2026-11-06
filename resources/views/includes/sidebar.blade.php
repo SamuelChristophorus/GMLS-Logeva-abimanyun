@@ -46,7 +46,7 @@
         <a href="{{ route('admin.paket.index') }}"
             class="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 group {{ request()->is('admin/paket-data*') ? 'bg-red-600 shadow-md shadow-gray-500/20 text-white' : 'text-slate-900 hover:bg-white hover:shadow-sm hover:text-blue-600' }}">
             <i class="fas fa-file-archive w-7 text-center {{ request()->is('admin/paket-data*') ? 'text-white' : 'text-slate-900 group-hover:text-blue-500' }} transition-colors"></i>
-            <span class="ml-2 font-semibold text-sm">Import Paket Posko</span>
+            <span class="ml-2 font-semibold text-sm">Paket Data Posko</span>
         </a>
 
         <p class="px-2 text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 mt-6">Donasi</p>
@@ -64,7 +64,7 @@
         <a href="{{ route('admin.gudang.index') }}"
             class="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 group {{ request()->is('admin/gudang-pusat*') ? 'bg-red-600 shadow-md shadow-gray-500/20 text-white' : 'text-slate-900 hover:bg-white hover:shadow-sm hover:text-blue-600' }}">
             <i class="fas fa-boxes w-7 text-center {{ request()->is('admin/gudang-pusat*') ? 'text-white' : 'text-slate-900 group-hover:text-blue-500' }} transition-colors"></i>
-            <span class="ml-2 font-semibold text-sm">Gudang Pusat GMLS</span>
+            <span class="ml-2 font-semibold text-sm">Pusat Logistik</span>
         </a>
     </div>
 

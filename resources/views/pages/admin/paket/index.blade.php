@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Import Paket Data Posko')
+@section('title', 'Paket Data Posko')
 
 @section('content')
 <div class="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10 min-h-screen flex flex-col gap-8">
@@ -10,7 +10,7 @@
         <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100/50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-3">
             <i class="fas fa-file-archive opacity-70"></i> Aplikasi Offline
         </div>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Import Paket Data Posko</h1>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Paket Data Posko</h1>
         <p class="text-slate-500 mt-1 font-medium text-sm">
             Gabungkan data dari aplikasi Logeva Client (posko, pengungsi, barang masuk &amp; keluar) yang dibawa lewat USB.
         </p>
@@ -84,6 +84,54 @@
                 <li><b>Barang masuk/keluar</b> yang sudah pernah diimpor dilewati. Stok bertambah/berkurang sesuai catatan baru.</li>
                 <li>Stok di HP hanya dipakai untuk memberi peringatan kalau berbeda.</li>
             </ul>
+        </div>
+    </div>
+
+    <!-- Export paket: website -> aplikasi -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="lg:w-2/5 text-sm text-slate-600">
+                <h2 class="text-lg font-extrabold text-slate-800 mb-1"><i class="fas fa-mobile-alt text-slate-400 mr-1"></i> Export paket untuk aplikasi</h2>
+                <p>Kebalikan dari upload di atas: data posko di website dikemas jadi paket untuk <b>diimpor di aplikasi HP</b>, misalnya untuk HP posko yang baru atau setelah ada data yang dicatat di website.</p>
+                <ul class="mt-3 space-y-1 list-disc list-inside text-xs text-slate-500">
+                    <li>Isi: posko + foto, pengungsi, barang masuk &amp; keluar, stok, petugas. Format sama dengan paket dari aplikasi.</li>
+                    <li>Saat paket dari HP dikirim balik ke website, data yang sama <b>tidak jadi dobel</b>.</li>
+                    <li>Paket <b>dikunci kata sandi</b> (berisi data pribadi). Berikan kata sandinya ke petugas posko secara terpisah, jangan ditulis di flashdisk.</li>
+                </ul>
+            </div>
+
+            <form method="POST" action="{{ route('admin.paket.export') }}" class="lg:w-3/5 grid sm:grid-cols-2 gap-4 content-start">
+                @csrf
+                <div class="sm:col-span-2">
+                    <label for="lokasi_ekspor" class="block text-sm font-bold text-slate-700 mb-1">Posko</label>
+                    <select id="lokasi_ekspor" name="lokasi" required class="block w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-blue-400">
+                        <option value="">-- Pilih posko --</option>
+                        <option value="semua" @selected(old('lokasi') === 'semua')>Semua posko ({{ $poskos->count() }})</option>
+                        @foreach ($poskos as $p)
+                            <option value="{{ $p->id }}" @selected(old('lokasi') == $p->id)>{{ $p->nama_lokasi }}{{ $p->desa ? ' · ' . $p->desa->nama_desa : '' }}{{ $p->isBeroperasi() ? '' : ' (tidak beroperasi)' }}</option>
+                        @endforeach
+                    </select>
+                    @error('lokasi')<p class="text-sm text-rose-600 mt-1">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="sandi_ekspor" class="block text-sm font-bold text-slate-700 mb-1"><i class="fas fa-lock text-slate-400 mr-1"></i> Kata sandi paket</label>
+                    <input type="password" id="sandi_ekspor" name="sandi_ekspor" required minlength="6" autocomplete="new-password"
+                           class="block w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-blue-400"
+                           placeholder="Minimal 6 karakter">
+                </div>
+                <div>
+                    <label for="sandi_ekspor_confirmation" class="block text-sm font-bold text-slate-700 mb-1">Ulangi kata sandi</label>
+                    <input type="password" id="sandi_ekspor_confirmation" name="sandi_ekspor_confirmation" required minlength="6" autocomplete="new-password"
+                           class="block w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:ring-blue-400">
+                </div>
+                @error('sandi_ekspor')<p class="sm:col-span-2 text-sm text-rose-600 -mt-2">{{ $message }}</p>@enderror
+                <p class="sm:col-span-2 text-xs text-slate-400">Saran: pakai kata sandi posko yang sama dengan di HP (Settings → Kata Sandi Posko) supaya petugas tidak perlu mengingat kata sandi baru.</p>
+                <div class="sm:col-span-2 flex justify-end">
+                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold shadow-lg shadow-slate-500/30">
+                        <i class="fas fa-download text-sm"></i> Download Paket (.zip)
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

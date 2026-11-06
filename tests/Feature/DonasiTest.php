@@ -332,6 +332,66 @@ class DonasiTest extends TestCase
         $this->assertSame(0, Donasi::count());
     }
 
+    public function test_pantau_stok_semua_posko_hanya_membaca_data(): void
+    {
+        StokLogistik::create(['lokasi_id' => $this->posko->id, 'logistik_id' => $this->beras->id, 'jumlah_stok' => 75, 'status_ketersediaan' => 'Kuning']);
+        StokGudang::create(['gudang_pusat_id' => GudangPusat::utama()->id, 'logistik_id' => $this->air->id, 'jumlah_stok' => 240]);
+
+        $tutup = Lokasi::create($this->posko->only(['desa_id', 'relawan_id', 'alamat_lokasi', 'luas_lokasi', 'kapasitas_pengungsi', 'gambar_lokasi', 'latitude', 'longitude'])
+            + ['nama_lokasi' => 'Posko Sudah Tutup', 'status_operasional' => Lokasi::OPS_SELESAI]);
+
+        $jumlahData = [StokLogistik::count(), StokGudang::count(), StokMasuk::count(), MutasiGudang::count()];
+
+        $this->actingAs($this->admin)->get(route('admin.gudang.stok-posko'))
+            ->assertOk()->assertSee('SDN 1 Sawarna')->assertSee('75')->assertSee('240')->assertDontSee('Posko Sudah Tutup');
+        $this->actingAs($this->admin)->get(route('admin.gudang.stok-posko', ['semua' => 1]))
+            ->assertOk()->assertSee('Posko Sudah Tutup');
+
+        // Tombol "Kirim" membuka gudang pusat dengan posko sudah terpilih
+        $this->actingAs($this->admin)->get(route('admin.gudang.index', ['posko' => $tutup->id]))
+            ->assertOk()->assertSee('value="' . $tutup->id . '" selected', false);
+
+        // Halaman pantau tidak mengubah / menggandakan data apa pun
+        $this->assertSame($jumlahData, [StokLogistik::count(), StokGudang::count(), StokMasuk::count(), MutasiGudang::count()]);
+
+        $this->actingAs($this->relawanUser)->get(route('admin.gudang.stok-posko'))->assertForbidden();
+    }
+
+    public function test_kirim_banyak_barang_dari_halaman_stok_semua_posko(): void
+    {
+        $gudang = GudangPusat::utama();
+        StokGudang::create(['gudang_pusat_id' => $gudang->id, 'logistik_id' => $this->beras->id, 'jumlah_stok' => 100]);
+        StokGudang::create(['gudang_pusat_id' => $gudang->id, 'logistik_id' => $this->air->id, 'jumlah_stok' => 20]);
+        $stokGudang = fn (Logistik $l) => (int) StokGudang::where('logistik_id', $l->id)->value('jumlah_stok');
+
+        $this->actingAs($this->admin)->get(route('admin.gudang.stok-posko'))->assertOk()->assertSee('kirimPosko(', false);
+
+        // Air melebihi stok gudang -> tidak ada yang terkirim sama sekali (beras juga batal)
+        $this->actingAs($this->admin)->from(route('admin.gudang.stok-posko'))->post(route('admin.gudang.kirim-banyak', $gudang), [
+            'lokasi_id' => $this->posko->id, 'items' => [$this->beras->id => 40, $this->air->id => 25], 'tanggal' => now()->toDateString(),
+        ])->assertRedirect(route('admin.gudang.stok-posko'))->assertSessionHasErrors('jumlah');
+        $this->assertSame([100, 20, 0, 0], [$stokGudang($this->beras), $stokGudang($this->air), $this->stokPosko($this->beras), $this->stokPosko($this->air)]);
+
+        // Semua 0 -> ditolak
+        $this->actingAs($this->admin)->post(route('admin.gudang.kirim-banyak', $gudang), [
+            'lokasi_id' => $this->posko->id, 'items' => [$this->beras->id => 0, $this->air->id => 0], 'tanggal' => now()->toDateString(),
+        ])->assertSessionHasErrors('items');
+
+        // Kirim dua barang sekaligus
+        $this->actingAs($this->admin)->post(route('admin.gudang.kirim-banyak', $gudang), [
+            'lokasi_id' => $this->posko->id, 'items' => [$this->beras->id => 40, $this->air->id => 20], 'tanggal' => now()->toDateString(),
+            'keterangan' => 'Mobil GMLS',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame([60, 0, 40, 20], [$stokGudang($this->beras), $stokGudang($this->air), $this->stokPosko($this->beras), $this->stokPosko($this->air)]);
+        $this->assertSame(2, MutasiGudang::where('jenis', MutasiGudang::KELUAR)->where('lokasi_id', $this->posko->id)->count());
+        $this->assertSame(2, StokMasuk::where('lokasi_id', $this->posko->id)->count());
+
+        $this->actingAs($this->relawanUser)->post(route('admin.gudang.kirim-banyak', $gudang), [
+            'lokasi_id' => $this->posko->id, 'items' => [$this->beras->id => 1], 'tanggal' => now()->toDateString(),
+        ])->assertForbidden();
+    }
+
     public function test_admin_tolak_donasi_dan_halaman_admin_terbuka(): void
     {
         $this->kirimDonasi([

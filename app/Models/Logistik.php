@@ -16,7 +16,7 @@ class Logistik extends Model
 
     public function kategori()
     {
-        return $this->belongsTo(KategoriLogistik::class);
+        return $this->belongsTo(KategoriLogistik::class, 'kategori_logistik_id');
     }
 
     public function stokLogistiks()

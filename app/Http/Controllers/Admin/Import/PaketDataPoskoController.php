@@ -33,6 +33,7 @@ class PaketDataPoskoController extends Controller
     public function index()
     {
         return view('pages.admin.paket.index', [
+            'poskos'  => \App\Models\Lokasi::tampilPublik()->with('desa')->orderBy('nama_lokasi')->get(['id', 'nama_lokasi', 'desa_id', 'status_operasional']),
             'hasil'   => session('hasil_paket'),
             'riwayat' => RiwayatImportPaket::with(['user', 'lokasis'])
                 ->withCount('selisihStok')
@@ -43,6 +44,41 @@ class PaketDataPoskoController extends Controller
     }
 
     /** Selisih stok HP vs pusat dari paket terbaru tiap posko, untuk diselidiki. */
+    /**
+     * Export paket dari website untuk diimpor di aplikasi (website -> HP): satu posko atau semua.
+     * Wajib dikunci kata sandi karena berisi data pribadi pengungsi.
+     */
+    public function export(Request $request)
+    {
+        $data = $request->validate([
+            'lokasi'     => ['required', 'regex:/^(semua|\d+)$/'],
+            'sandi_ekspor' => 'required|string|min:6|max:100|confirmed',
+        ], [
+            'lokasi.required'      => 'Pilih posko yang akan diekspor.',
+            'sandi_ekspor.required'  => 'Isi kata sandi untuk mengunci paket.',
+            'sandi_ekspor.min'       => 'Kata sandi minimal 6 karakter.',
+            'sandi_ekspor.confirmed' => 'Ulangi kata sandi tidak sama.',
+        ]);
+
+        $poskos = \App\Models\Lokasi::tampilPublik()
+            ->with('desa', 'relawan.user', 'petugas')
+            ->when((string) $data['lokasi'] !== 'semua', fn ($q) => $q->whereKey((int) $data['lokasi']))
+            ->orderBy('nama_lokasi')
+            ->get();
+
+        if ($poskos->isEmpty()) {
+            return back()->withErrors(['lokasi' => 'Posko tidak ditemukan atau laporannya ditolak.']);
+        }
+
+        $nama = 'paket_pusat_'
+            . ($poskos->count() === 1 ? Str::slug($poskos->first()->nama_lokasi, '_') : 'semua_posko')
+            . '_' . now()->format('Ymd-Hi') . '.zip';
+
+        $path = (new \App\Exports\PaketPoskoExport($poskos, $request->user()->name))->simpan($data['sandi_ekspor']);
+
+        return response()->download($path, $nama, ['Content-Type' => 'application/zip'])->deleteFileAfterSend();
+    }
+
     public function selisih()
     {
         return view('pages.admin.paket.selisih', [

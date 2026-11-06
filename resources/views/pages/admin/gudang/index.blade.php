@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Gudang Pusat GMLS')
+@section('title', 'Pusat Logistik')
 
 @section('content')
 @php
@@ -11,6 +11,8 @@
 @endphp
 
 <div class="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10 flex flex-col gap-6" x-data="{ tab: '{{ $errors->has('sumber') ? 'masuk' : 'kirim' }}', edit: {{ $errors->has('nama') || $errors->has('nomor_rekening') || $errors->has('nama_bank') ? 'true' : 'false' }} }">
+
+    @include('pages.admin.gudang._tab')
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div>
@@ -123,7 +125,7 @@
                         <select name="lokasi_id" required class="{{ $input }}">
                             <option value="">-- Pilih posko --</option>
                             @foreach ($poskos as $p)
-                                <option value="{{ $p->id }}" @selected(old('lokasi_id') == $p->id)>{{ $p->nama_lokasi }}{{ $p->isBeroperasi() ? '' : ' (tidak beroperasi)' }}</option>
+                                <option value="{{ $p->id }}" @selected(old('lokasi_id', request('posko')) == $p->id)>{{ $p->nama_lokasi }}{{ $p->isBeroperasi() ? '' : ' (tidak beroperasi)' }}</option>
                             @endforeach
                         </select>
                     </div>

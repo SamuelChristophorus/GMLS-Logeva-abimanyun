@@ -163,7 +163,7 @@ class PaketDataPoskoTest extends TestCase
     {
         $this->get(route('admin.paket.index'))->assertRedirect(route('login'));
         $this->actingAs($this->admin)->get(route('admin.paket.index'))
-            ->assertOk()->assertSee('Import Paket Data Posko');
+            ->assertOk()->assertSee('Paket Data Posko')->assertSee('Export paket untuk aplikasi');
     }
 
     public function test_pratinjau_menampilkan_isi_paket(): void

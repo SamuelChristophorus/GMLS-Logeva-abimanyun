@@ -143,8 +143,35 @@ class LokasiController extends Controller
         return redirect()->route('admin.lokasi.index');
     }
 
+    /** Laporan untuk dibaca manusia (Excel). */
     public function export()
     {
         return Excel::download(new LokasiExport, 'data_lokasi.xlsx');
+    }
+
+    /**
+     * Untuk diimpor di aplikasi offline: ZIP berisi posko.csv + foto.
+     * Semua posko kecuali yang ditolak admin, atau satu posko saja (?lokasi=ID).
+     */
+    public function exportAplikasi(\Illuminate\Http\Request $request)
+    {
+        $poskos = \App\Models\Lokasi::tampilPublik()
+            ->with('desa', 'relawan.user')
+            ->when($request->filled('lokasi'), fn ($q) => $q->whereKey($request->integer('lokasi')))
+            ->orderBy('nama_lokasi')
+            ->get();
+
+        if ($poskos->isEmpty()) {
+            Swal::toast('Tidak ada posko yang bisa diekspor (posko yang ditolak tidak ikut).', 'warning')->timerProgressBar();
+
+            return back();
+        }
+
+        $nama = 'posko_untuk_aplikasi_'
+            . ($poskos->count() === 1 ? \Illuminate\Support\Str::slug($poskos->first()->nama_lokasi, '_') . '_' : '')
+            . now()->format('Ymd-Hi') . '.zip';
+
+        return response()->download((new \App\Exports\PoskoAplikasiExport($poskos))->simpan(), $nama, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend();
     }
 }

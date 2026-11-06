@@ -17,6 +17,36 @@ class BerkasTerkunci
     public const NAMA_ISI = 'terkunci.enc';
     private const MAGIC = 'LGVENC01';
 
+    /** Iterasi PBKDF2 untuk paket yang dikunci website (pembaca menerima 1.000 – 1.000.000). */
+    public const ITERASI = 100000;
+
+    /**
+     * Kebalikan dari buka(): kunci isi paket (byte ZIP) dengan kata sandi, lalu bungkus jadi
+     * ZIP berisi terkunci.enc + BACA.txt — format yang sama dengan paket terkunci dari aplikasi.
+     *
+     * @return string path file ZIP terkunci (sementara)
+     */
+    public static function kunci(string $isiZip, string $kataSandi): string
+    {
+        $salt  = random_bytes(16);
+        $iv    = random_bytes(12);
+        $kunci = hash_pbkdf2('sha256', $kataSandi, $salt, self::ITERASI, 32, true);
+        $tag   = '';
+        $ciphertext = openssl_encrypt($isiZip, 'aes-256-gcm', $kunci, OPENSSL_RAW_DATA, $iv, $tag, self::MAGIC, 16);
+
+        $path = tempnam(sys_get_temp_dir(), 'paket_kunci_');
+        $zip  = new ZipArchive;
+        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString(self::NAMA_ISI, self::MAGIC . pack('N', self::ITERASI) . $salt . $iv . $ciphertext . $tag);
+        $zip->setCompressionName(self::NAMA_ISI, ZipArchive::CM_STORE);
+        $zip->addFromString('BACA.txt', "Paket Data Posko LOGEVA (dari website GMLS).\r\n"
+            . "Isi paket dikunci kata sandi karena berisi data pribadi pengungsi.\r\n"
+            . "Buka lewat aplikasi LOGEVA: menu Impor Paket, lalu ketik kata sandi yang diberikan admin GMLS.\r\n");
+        $zip->close();
+
+        return $path;
+    }
+
     public static function terkunci(string $path): bool
     {
         $zip = new ZipArchive;

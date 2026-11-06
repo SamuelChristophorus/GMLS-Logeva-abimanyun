@@ -166,7 +166,7 @@
                     </a>
                 @endif
                 @if ($kirimanPaket->count() > 5)
-                    <p class="text-xs text-slate-400 mt-3">{{ $kirimanPaket->count() - 5 }} kiriman lebih lama ada di menu <a href="{{ route('admin.paket.index') }}" class="font-bold text-blue-600 hover:underline">Import Paket Posko</a>.</p>
+                    <p class="text-xs text-slate-400 mt-3">{{ $kirimanPaket->count() - 5 }} kiriman lebih lama ada di menu <a href="{{ route('admin.paket.index') }}" class="font-bold text-blue-600 hover:underline">Paket Data Posko</a>.</p>
                 @endif
             </div>
             @endif
