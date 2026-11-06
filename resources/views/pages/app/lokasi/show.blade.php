@@ -80,6 +80,12 @@
                 {{ $lokasi->alamat_lokasi }}
 
             </p>
+            @if ($lokasi->ketinggian_mdpl !== null)
+                <p class="mt-2 text-slate-300 text-sm">
+                    <i class="fas fa-mountain text-red-400 mr-2"></i>
+                    Ketinggian {{ rtrim(rtrim(number_format((float) $lokasi->ketinggian_mdpl, 1, ',', '.'), '0'), ',') }} m di atas permukaan laut
+                </p>
+            @endif
 <div class="mt-4 flex items-center gap-3">
 
     <img src="{{ asset('storage/' . $lokasi->relawan->avatar) }}"

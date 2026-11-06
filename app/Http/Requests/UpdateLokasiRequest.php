@@ -25,6 +25,7 @@ class UpdateLokasiRequest extends FormRequest
             'gambar_lokasi'=> 'nullable',
             'latitude'=> 'required|string',
             'longitude'=> 'required|string',
+            'ketinggian_mdpl' => 'nullable|numeric|between:-50,5000',
         ];
     }
 }

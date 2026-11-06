@@ -68,7 +68,8 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
             'Toilet Panjang',
             'Kalori',
             'Protein',
-            'Lemak'
+            'Lemak',
+            'Ketinggian (m dpl)'
         ];
     }
 
@@ -97,6 +98,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
             optional($lokasi->sphereLokasi)->kalori ?? '-',
             optional($lokasi->sphereLokasi)->protein ?? '-',
             optional($lokasi->sphereLokasi)->lemak ?? '-',
+            $lokasi->ketinggian_mdpl ?? '-',
         ];
     }
 
@@ -105,7 +107,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
         $printDate = Carbon::now($this->timezone)->translatedFormat('d F Y H:i');
         
         // Set title
-        $sheet->mergeCells('A1:T1');
+        $sheet->mergeCells('A1:U1');
         $sheet->setCellValue('A1', 'DATA LOKASI PENGUNGSIAN KECAMATAN PANGGARANGAN OLEH GMLS');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => [
@@ -124,7 +126,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
         ]);
 
         // Set subtitle with export date
-        $sheet->mergeCells('A2:T2');
+        $sheet->mergeCells('A2:U2');
         $sheet->setCellValue('A2', 'Dicetak pada: ' . $printDate . ' (WIB)');
         $sheet->getStyle('A2')->applyFromArray([
             'font' => [
@@ -137,7 +139,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
         ]);
 
         // Header style
-        $sheet->getStyle('A3:T3')->applyFromArray([
+        $sheet->getStyle('A3:U3')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF']
@@ -160,7 +162,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
 
         // Data rows style
         $lastRow = $sheet->getHighestRow();
-        $dataRange = 'A4:T' . $lastRow;
+        $dataRange = 'A4:U' . $lastRow;
         
         $sheet->getStyle($dataRange)->applyFromArray([
             'borders' => [
@@ -177,7 +179,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
         // Alternating row colors
         for ($i = 4; $i <= $lastRow; $i++) {
             $fillColor = $i % 2 == 0 ? 'E9E9E9' : 'FFFFFF';
-            $sheet->getStyle('A' . $i . ':T' . $i)->getFill()
+            $sheet->getStyle('A' . $i . ':U' . $i)->getFill()
                 ->setFillType(Fill::FILL_SOLID)
                 ->getStartColor()->setRGB($fillColor);
         }
@@ -188,6 +190,7 @@ class LokasiExport implements FromCollection, WithHeadings, WithMapping, ShouldA
 
         // Set column widths
         $sheet->getColumnDimension('A')->setWidth(8);  // No column
+        $sheet->getColumnDimension('U')->setWidth(18); // Ketinggian (m dpl)
         $sheet->getColumnDimension('B')->setWidth(10); // ID
         $sheet->getColumnDimension('C')->setWidth(25); // Nama Lokasi
         $sheet->getColumnDimension('D')->setWidth(30); // Alamat

@@ -29,7 +29,7 @@ class PoskoAplikasiExport
     public const KOLOM_POSKO = [
         'kode_posko', 'nama_lokasi', 'nama_desa', 'alamat_lokasi', 'luas_lokasi', 'kapasitas_pengungsi',
         'latitude', 'longitude', 'status_operasional', 'mulai_beroperasi_at', 'selesai_beroperasi_at',
-        'relawan_penanggung_jawab', 'diubah_pada', 'foto',
+        'relawan_penanggung_jawab', 'diubah_pada', 'foto', 'ketinggian_mdpl',
     ];
 
     /** @param Collection<int, Lokasi> $poskos */
@@ -74,6 +74,7 @@ class PoskoAplikasiExport
             $l->relawan?->user?->name ?? '',
             $l->updated_at?->format('Y-m-d H:i:s') ?? '',
             self::tambahFoto($zip, $l),
+            $l->ketinggian_mdpl === null ? '' : self::angka($l->ketinggian_mdpl),
         ];
     }
 

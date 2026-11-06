@@ -24,6 +24,7 @@ class Lokasi extends Model
         'gambar_lokasi',
         'latitude',
         'longitude',
+        'ketinggian_mdpl',
         // --- baru: status operasional ---
         'status_operasional',
         'mulai_beroperasi_at',

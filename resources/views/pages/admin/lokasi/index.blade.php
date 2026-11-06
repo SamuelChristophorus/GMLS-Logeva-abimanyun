@@ -35,6 +35,12 @@
                 <i class="fas fa-mobile-alt text-sm"></i> Export untuk Aplikasi
             </a>
 
+            <!-- Import TEA dari aplikasi RUinRISK -->
+            <a href="{{ route('admin.lokasi.ruinrisk.index') }}" title="Tambah Tempat Evakuasi Akhir dari file Data TEA aplikasi RUinRISK"
+               class="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl shadow-sm border border-slate-200">
+                <i class="fas fa-satellite-dish text-sm"></i> Import TEA RUinRISK
+            </a>
+
             <!-- Import Button (export lokasi sudah ada di atas, jadi exportRoute = null) -->
             @include('includes.admin-import-export', [
                 'judul'         => 'Lokasi Pengungsian',

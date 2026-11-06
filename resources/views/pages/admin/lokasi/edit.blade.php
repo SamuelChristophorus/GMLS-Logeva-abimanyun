@@ -151,6 +151,15 @@
                                     @enderror
                                 </div>
                             </div>
+                            <div class="space-y-2 mt-4">
+                                <label for="ketinggian_mdpl" class="block text-sm font-bold text-slate-700">Ketinggian <span class="font-medium text-slate-400">(m dpl, opsional)</span></label>
+                                <input type="number" step="0.1" min="-50" max="5000" id="ketinggian_mdpl" name="ketinggian_mdpl" value="{{ old('ketinggian_mdpl', $lokasi->ketinggian_mdpl) }}" placeholder="contoh: 25"
+                                    class="w-full sm:w-1/2 px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono text-sm @error('ketinggian_mdpl') border-rose-500 @enderror">
+                                <p class="text-[11px] text-slate-400">Meter di atas permukaan laut. Penting untuk tempat evakuasi tsunami.</p>
+                                @error('ketinggian_mdpl')
+                                    <p class="mt-1.5 text-xs font-bold text-rose-500 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ $message }}</p>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="bg-amber-50/50 rounded-2xl border border-amber-100 p-6">

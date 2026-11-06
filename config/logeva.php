@@ -22,4 +22,12 @@ return [
     // Kosong = fitur MATI. Isi sementara saat deploy (minimal 32 karakter acak), lalu kosongkan lagi.
     'deploy_token' => env('DEPLOY_TOKEN', ''),
 
+    // Wilayah kerja GMLS (kotak batas Kabupaten Lebak). Dipakai untuk MEMPERINGATKAN (bukan menolak)
+    // titik posko dari sumber luar (mis. RUinRISK) yang berada di luar wilayah ini.
+    'wilayah_kerja' => [
+        'nama' => 'Kabupaten Lebak',
+        'lat'  => [-7.10, -6.25],
+        'lng'  => [105.35, 106.60],
+    ],
+
 ];

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\Import\LogistikImportController;
 use App\Http\Controllers\Admin\Import\RelawanImportController;
 use App\Http\Controllers\Admin\Import\LokasiImportController;
 use App\Http\Controllers\Admin\Import\PaketDataPoskoController;
+use App\Http\Controllers\Admin\Import\RuinriskImportController;
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -235,6 +236,12 @@ Route::prefix('admin')
             ->name('relawan.import.confirm');
 
         // Export lokasi sudah ada (admin.lokasi.export)
+        // Import TEA dari aplikasi RUinRISK (upload -> pratinjau pilih desa & relawan -> konfirmasi)
+        Route::get('/lokasi/import-ruinrisk', [RuinriskImportController::class, 'index'])->name('lokasi.ruinrisk.index');
+        Route::post('/lokasi/import-ruinrisk/preview', [RuinriskImportController::class, 'preview'])->name('lokasi.ruinrisk.preview');
+        Route::post('/lokasi/import-ruinrisk/confirm', [RuinriskImportController::class, 'confirm'])->name('lokasi.ruinrisk.confirm');
+        Route::post('/lokasi/import-ruinrisk/batal', [RuinriskImportController::class, 'batal'])->name('lokasi.ruinrisk.batal');
+
         Route::get('/lokasi/import/template', [LokasiImportController::class, 'template'])
             ->name('lokasi.import.template');
         Route::post('/lokasi/import/preview', [LokasiImportController::class, 'preview'])

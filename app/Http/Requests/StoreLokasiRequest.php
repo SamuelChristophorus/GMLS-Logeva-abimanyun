@@ -21,6 +21,7 @@ class StoreLokasiRequest extends FormRequest
             'gambar_lokasi'=> 'required|image|mimes:jpeg,png,jpg|max:2048',
             'latitude'=> 'required|string',
             'longitude'=> 'required|string',
+            'ketinggian_mdpl' => 'nullable|numeric|between:-50,5000',
             'air_hidup' => 'nullable',
             'air_kebersihan' => 'nullable',
             'air_memasak' => 'nullable',

@@ -109,6 +109,20 @@
                             <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-vector-square"></i></div>
                         </div>
                     </div>
+                    @if ($lokasi->ketinggian_mdpl !== null || $lokasi->sumber_data)
+                    <div class="bg-sky-50/70 p-4 rounded-2xl border border-sky-100">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-sky-600/70 uppercase tracking-widest mb-1">Ketinggian</p>
+                                <p class="text-lg font-black text-sky-700">{{ $lokasi->ketinggian_mdpl === null ? '-' : rtrim(rtrim(number_format((float) $lokasi->ketinggian_mdpl, 1, ',', '.'), '0'), ',') }} <span class="text-sm font-bold text-sky-600/70">m dpl</span></p>
+                                @if ($lokasi->sumber_data === \App\Services\ImportRuinriskService::SUMBER)
+                                    <p class="text-[10px] font-bold text-sky-600 mt-1">Dari RUinRISK · ID {{ $lokasi->id_sumber }}</p>
+                                @endif
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center"><i class="fas fa-mountain"></i></div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
 
