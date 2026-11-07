@@ -171,7 +171,9 @@ class ImportRuinriskService
      * Simpan hasil pratinjau.
      *
      * @param array $baris   hasil periksa()
-     * @param array $pilihan [index baris => ['aksi' => tambah|lewati, 'desa_id' => .., 'relawan_id' => ..]] untuk baris "tambah" (tanpa pilihan = dilewati)
+     * @param array $pilihan [index baris => ['ambil' => 1, 'desa_id' => .., 'relawan_id' => ..]]
+     *                       Hanya baris yang DICENTANG "ambil" yang disimpan (posko baru maupun pembaruan);
+     *                       desa & relawan wajib untuk posko baru yang diambil.
      * @return array{tambah:int, perbarui:int, dilewati:int}
      */
     public function simpan(array $baris, array $pilihan, User $admin): array
@@ -183,7 +185,7 @@ class ImportRuinriskService
         // Periksa pilihan admin dulu, sebelum ada yang disimpan
         $kurang = [];
         foreach ($baris as $i => $b) {
-            if ($b['status'] !== 'tambah' || ($pilihan[$i]['aksi'] ?? 'lewati') === 'lewati') continue;
+            if ($b['status'] !== 'tambah' || ! $this->diambil($pilihan, $i)) continue;
             if (! isset($desa[(int) ($pilihan[$i]['desa_id'] ?? 0)]) || ! isset($relawan[(int) ($pilihan[$i]['relawan_id'] ?? 0)])) {
                 $kurang[] = "baris {$b['row']} ({$b['data']['nama_lokasi']})";
             }
@@ -194,11 +196,12 @@ class ImportRuinriskService
 
         DB::transaction(function () use ($baris, $pilihan, $admin, &$hitung) {
             foreach ($baris as $i => $b) {
-                $tambah = $b['status'] === 'tambah' && ($pilihan[$i]['aksi'] ?? 'lewati') !== 'lewati';
-                if (! $tambah && $b['status'] !== 'perbarui') {
-                    $hitung['dilewati'] += in_array($b['status'], ['tambah', 'lewati'], true) ? 1 : 0;
+                $bisaDiambil = in_array($b['status'], ['tambah', 'perbarui'], true);
+                if (! $bisaDiambil || ! $this->diambil($pilihan, $i)) {
+                    $hitung['dilewati'] += $bisaDiambil || $b['status'] === 'lewati' ? 1 : 0;
                     continue;
                 }
+                $tambah = $b['status'] === 'tambah';
 
                 $nilai = $this->nilaiSimpan($b['data']);
                 // Klik dua kali / file sama di tab lain: ID yang sudah tersimpan diperbarui, bukan ditambah
@@ -239,6 +242,12 @@ class ImportRuinriskService
         });
 
         return $hitung;
+    }
+
+    /** Baris dicentang "Ambil" oleh admin di pratinjau. */
+    private function diambil(array $pilihan, int $i): bool
+    {
+        return filter_var($pilihan[$i]['ambil'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     /** Kolom lokasis dari data RUinRISK. Luas dihitung balik dari kapasitas agar rumus kapasitas tetap sama. */

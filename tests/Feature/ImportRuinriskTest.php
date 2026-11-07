@@ -98,19 +98,25 @@ class ImportRuinriskTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.lokasi.ruinrisk.preview'), ['file' => $this->file($this->barisData())])
             ->assertRedirect(route('admin.lokasi.ruinrisk.index'));
         $this->actingAs($this->admin)->get(route('admin.lokasi.ruinrisk.index'))
-            ->assertOk()->assertSee('Bukit Evakuasi Pasir Gombong')->assertSee('SDN 1 Sawarna');
+            ->assertOk()->assertSee('Bukit Evakuasi Pasir Gombong')->assertSee('SDN 1 Sawarna')
+            ->assertSee('name="pilihan[1][ambil]"', false)->assertDontSee('name="pilihan[3][ambil]"', false); // baris "lewati" tidak bisa dicentang
+
+        // Tidak ada yang dicentang -> ditolak, tidak ada yang tersimpan
+        $this->actingAs($this->admin)->post(route('admin.lokasi.ruinrisk.confirm'), ['pilihan' => [
+            1 => ['desa_id' => $this->desa->id, 'relawan_id' => $this->relawan->id],
+        ]])->assertSessionHasErrors('pilihan');
 
         // Desa & relawan wajib untuk posko baru yang ditambahkan -> tidak ada yang tersimpan
         $this->actingAs($this->admin)->post(route('admin.lokasi.ruinrisk.confirm'), ['pilihan' => [
-            1 => ['aksi' => 'tambah', 'desa_id' => $this->desa->id, 'relawan_id' => ''],
+            1 => ['ambil' => 1, 'desa_id' => $this->desa->id, 'relawan_id' => ''],
         ]])->assertSessionHasErrors('pilihan');
         $this->assertSame(1, Lokasi::count());
 
         $pilih = ['desa_id' => $this->desa->id, 'relawan_id' => $this->relawan->id];
         $this->actingAs($this->admin)->post(route('admin.lokasi.ruinrisk.confirm'), ['pilihan' => [
-            0 => ['aksi' => 'tambah'] + $pilih,
-            1 => ['aksi' => 'tambah'] + $pilih,
-            2 => ['aksi' => 'lewati'],               // tempat yang sama dengan SDN 1 Sawarna
+            0 => ['ambil' => 1] + $pilih,
+            1 => ['ambil' => 1] + $pilih,
+            2 => $pilih,                             // tidak dicentang: tempat yang sama dengan SDN 1 Sawarna
         ]])->assertRedirect(route('admin.lokasi.index'));
 
         $this->assertSame(3, Lokasi::count());
@@ -131,8 +137,15 @@ class ImportRuinriskTest extends TestCase
         $data = $this->barisData();
         $data[1][2] = 150;
         $data[1][5] = 50;
-        $svc->simpan($ubah = $svc->periksa($svc->baca($this->file($data))['rows']), [], $this->admin);
+        $ubah = $svc->periksa($svc->baca($this->file($data))['rows']);
         $this->assertSame('perbarui', $ubah[1]['status']);
+
+        // Pembaruan yang TIDAK dicentang tidak diambil: posko tetap seperti sebelumnya
+        $hitung = $svc->simpan($ubah, [], $this->admin);
+        $this->assertSame(0, $hitung['perbarui']);
+        $this->assertSame(120, (int) $bukit->fresh()->kapasitas_pengungsi);
+
+        $svc->simpan($ubah, [1 => ['ambil' => '1']], $this->admin);
         $this->assertSame(3, Lokasi::count());
         $bukit->refresh();
         $this->assertSame([150, 525.0, 50.0, $this->desa->id], [(int) $bukit->kapasitas_pengungsi, (float) $bukit->luas_lokasi, (float) $bukit->ketinggian_mdpl, $bukit->desa_id]);

@@ -16,6 +16,11 @@
         'error'    => ['Error',           'bg-rose-100 text-rose-700'],
     ];
     $pilih = 'w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none';
+    $bisaAmbil = fn ($b) => in_array($b['status'], ['tambah', 'perbarui'], true);
+    $adaIsianLama = session()->hasOldInput();
+    $ambilAwal = $baris->filter($bisaAmbil)->map(fn ($b, $i) => $adaIsianLama
+        ? (bool) old("pilihan.$i.ambil")
+        : ($b['status'] === 'perbarui' || empty($b['peringatan'])));
 @endphp
 
 <div class="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10 flex flex-col gap-6">
@@ -72,12 +77,22 @@
     @else
         {{-- ===== PRATINJAU ===== --}}
         <form method="POST" action="{{ route('admin.lokasi.ruinrisk.confirm') }}" class="flex flex-col gap-6"
-              x-data="{ desaSemua: '', relawanSemua: '' }">
+              x-data="{
+                  desaSemua: '', relawanSemua: '',
+                  ambil: @js((object) $ambilAwal->all()),
+                  get jumlahAmbil() { return Object.values(this.ambil).filter(Boolean).length },
+                  get semua() { return this.jumlahAmbil === Object.keys(this.ambil).length },
+                  pilihSemua(nilai) { Object.keys(this.ambil).forEach(k => this.ambil[k] = nilai) },
+              }">
             @csrf
 
             <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
                 <div>
                     <p class="text-sm text-slate-500">File: <b class="text-slate-700">{{ $pratinjau['namaFile'] }}</b></p>
+                    <p class="text-sm text-slate-700 mt-1">
+                        <b x-text="jumlahAmbil"></b> dari {{ $ambilAwal->count() }} baris dicentang untuk diambil.
+                        <span class="text-slate-500">Baris yang tidak dicentang tidak diambil. Baris dengan peringatan tidak dicentang otomatis.</span>
+                    </p>
                     <div class="flex flex-wrap gap-2 mt-2">
                         @foreach ($statusUi as $kunci => [$label, $kelas])
                             @if ($jumlah[$kunci] ?? 0)
@@ -112,6 +127,17 @@
                     <table class="w-full text-sm">
                         <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
                             <tr>
+                                <th class="px-4 py-3 w-16 text-center">
+                                    @if ($ambilAwal->isNotEmpty())
+                                        <label class="inline-flex flex-col items-center gap-1 cursor-pointer">
+                                            <input type="checkbox" :checked="semua" @change="pilihSemua($event.target.checked)"
+                                                   class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" aria-label="Centang semua baris">
+                                            <span>Ambil</span>
+                                        </label>
+                                    @else
+                                        Ambil
+                                    @endif
+                                </th>
                                 <th class="text-left px-4 py-3">Baris</th>
                                 <th class="text-left px-4 py-3">Data RUinRISK</th>
                                 <th class="text-left px-4 py-3">Status &amp; peringatan</th>
@@ -121,7 +147,17 @@
                         <tbody class="divide-y divide-slate-100">
                             @foreach ($baris as $i => $b)
                                 @php [$label, $kelas] = $statusUi[$b['status']]; $d = $b['data']; @endphp
-                                <tr class="{{ $b['status'] === 'error' ? 'bg-rose-50/40' : '' }} align-top">
+                                <tr class="{{ $b['status'] === 'error' ? 'bg-rose-50/40' : '' }} align-top transition"
+                                    @if ($bisaAmbil($b)) :class="ambil[{{ $i }}] ? 'bg-emerald-50/40' : 'opacity-60'" @endif>
+                                    <td class="px-4 py-3 text-center">
+                                        @if ($bisaAmbil($b))
+                                            <input type="checkbox" name="pilihan[{{ $i }}][ambil]" value="1" x-model="ambil[{{ $i }}]"
+                                                   class="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                   aria-label="Ambil baris {{ $b['row'] }} ({{ $b['data']['nama_lokasi'] }})">
+                                        @else
+                                            <span class="text-slate-300" title="Baris ini tidak bisa diambil">–</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-slate-400">{{ $b['row'] }}</td>
                                     <td class="px-4 py-3">
                                         <p class="font-bold text-slate-800">{{ $d['nama_lokasi'] ?: '-' }}</p>
@@ -140,11 +176,8 @@
                                     </td>
                                     <td class="px-4 py-3">
                                         @if ($b['status'] === 'tambah')
-                                            <div class="space-y-2">
-                                                <select name="pilihan[{{ $i }}][aksi]" class="{{ $pilih }}" aria-label="Tindakan baris {{ $b['row'] }}">
-                                                    <option value="tambah" @selected(old("pilihan.$i.aksi", $b['dekat'] ? 'lewati' : 'tambah') === 'tambah')>Tambahkan sebagai posko baru</option>
-                                                    <option value="lewati" @selected(old("pilihan.$i.aksi", $b['dekat'] ? 'lewati' : 'tambah') === 'lewati')>Lewati{{ $b['dekat'] ? ' (kemungkinan tempat yang sama)' : '' }}</option>
-                                                </select>
+                                            <div class="space-y-2" x-show="ambil[{{ $i }}]">
+                                                <p class="text-xs font-semibold text-emerald-700">Ditambahkan sebagai posko baru di:</p>
                                                 <select name="pilihan[{{ $i }}][desa_id]" data-pilih="desa" class="{{ $pilih }}" aria-label="Desa baris {{ $b['row'] }}">
                                                     <option value="">-- Desa --</option>
                                                     @foreach ($desas as $ds)<option value="{{ $ds->id }}" @selected(old("pilihan.$i.desa_id") == $ds->id)>{{ $ds->nama_desa }}</option>@endforeach
@@ -154,8 +187,10 @@
                                                     @foreach ($relawans as $r)<option value="{{ $r->id }}" @selected(old("pilihan.$i.relawan_id") == $r->id)>{{ $r->user->name }}</option>@endforeach
                                                 </select>
                                             </div>
+                                            <p class="text-xs text-slate-400" x-show="! ambil[{{ $i }}]">Tidak diambil</p>
                                         @elseif ($b['status'] === 'perbarui')
-                                            <p class="text-xs text-slate-600">Posko yang sudah ada akan diperbarui. Desa &amp; relawan tidak berubah.</p>
+                                            <p class="text-xs text-slate-600" x-show="ambil[{{ $i }}]">Posko yang sudah ada akan diperbarui. Desa &amp; relawan tidak berubah.</p>
+                                            <p class="text-xs text-slate-400" x-show="! ambil[{{ $i }}]">Tidak diambil, posko tetap seperti sekarang</p>
                                         @else
                                             <p class="text-xs text-slate-400">Tidak ada tindakan</p>
                                         @endif
@@ -170,8 +205,9 @@
             <div class="flex flex-wrap justify-end gap-3">
                 <button type="submit" form="batal-ruinrisk" class="px-5 py-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:bg-slate-50">Batal</button>
                 @if (($jumlah['tambah'] ?? 0) + ($jumlah['perbarui'] ?? 0) > 0)
-                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-500/30">
-                        <i class="fas fa-check"></i> Simpan ke Lokasi Pengungsian
+                    <button type="submit" :disabled="jumlahAmbil === 0" :class="jumlahAmbil === 0 ? 'opacity-50 cursor-not-allowed' : ''"
+                            class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-500/30">
+                        <i class="fas fa-check"></i> Ambil <span x-text="jumlahAmbil"></span> baris yang dicentang
                     </button>
                 @endif
             </div>

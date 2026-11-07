@@ -72,12 +72,17 @@ class RuinriskImportController extends Controller
 
         $data = $request->validate([
             'pilihan'              => 'nullable|array',
-            'pilihan.*.aksi'       => 'nullable|in:tambah,lewati',
+            'pilihan.*.ambil'      => 'nullable|boolean',
             'pilihan.*.desa_id'    => 'nullable|integer',
             'pilihan.*.relawan_id' => 'nullable|integer',
         ]);
 
-        $hitung = $this->service->simpan($pratinjau['baris'], $data['pilihan'] ?? [], $request->user());
+        $pilihan = $data['pilihan'] ?? [];
+        if (! collect($pilihan)->contains(fn ($p) => ! empty($p['ambil']))) {
+            return back()->withErrors(['pilihan' => 'Belum ada baris yang dicentang untuk diambil.']);
+        }
+
+        $hitung = $this->service->simpan($pratinjau['baris'], $pilihan, $request->user());
         $request->session()->forget(self::SESSION);
 
         Swal::toast("RUinRISK: {$hitung['tambah']} posko ditambah, {$hitung['perbarui']} diperbarui, {$hitung['dilewati']} dilewati", 'success')->timerProgressBar();
