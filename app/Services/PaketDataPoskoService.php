@@ -344,6 +344,16 @@ class PaketDataPoskoService
             'selesai_beroperasi_at' => $this->waktu($r['selesai_beroperasi_at']),
         ];
 
+        // Kolom tambahan aplikasi (sejak 10 Nov 2026). Paket tanpa kolom ini = ketinggian tidak diubah.
+        // Format paket memakai desimal titik, jadi dibaca apa adanya (bukan format ribuan Indonesia).
+        if (array_key_exists('ketinggian_mdpl', $r)) {
+            $t = trim((string) $r['ketinggian_mdpl']);
+            if ($t !== '' && (! is_numeric($t) || $t < -50 || $t > 5000)) {
+                $error[] = 'Ketinggian (m dpl) harus angka antara -50 dan 5000';
+            }
+            $baru['ketinggian_mdpl'] = $t === '' || ! is_numeric($t) ? null : round((float) $t, 2);
+        }
+
         $lama = [];
         $ubah = false;
         if ($lokasi && ! $error) {
@@ -888,6 +898,9 @@ class PaketDataPoskoService
             'mulai_beroperasi_at'   => $s['mulai_beroperasi_at'],
             'selesai_beroperasi_at' => $s['selesai_beroperasi_at'],
         ];
+        if (array_key_exists('ketinggian_mdpl', $s)) {
+            $isian['ketinggian_mdpl'] = $s['ketinggian_mdpl'];
+        }
 
         if ($b['lokasi_id']) {
             $lokasi = Lokasi::find($b['lokasi_id']);

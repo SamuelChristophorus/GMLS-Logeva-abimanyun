@@ -4,55 +4,30 @@ namespace App\Exports;
 
 use App\Http\Controllers\Admin\Import\LokasiImportController;
 use App\Models\Lokasi;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use ZipArchive;
 
 /**
- * Export lokasi pengungsian UNTUK APLIKASI OFFLINE (website -> HP), berupa ZIP:
+ * Bagian POSKO untuk Export Paket Data Posko (PaketPoskoExport, website -> HP):
  *
- *   info.csv   versi_format, dibuat_pada, sumber, jumlah_posko
- *   posko.csv  kolom SAMA dengan posko.csv di Paket Data Posko (HP -> website) + kolom foto
+ *   posko.csv  kolom SAMA dengan posko.csv di Paket Data Posko (HP -> website) + kolom foto & ketinggian
  *   foto/      foto posko, nama file = <kode_posko>.<ekstensi> (kosong jika posko tidak punya foto)
  *
  * Kapasitas dihitung ulang dari luas (luas ÷ 3,5 m²). Nilai SPHERE tidak ikut karena turunan
  * dari kapasitas (aplikasi bisa menghitung sendiri). Posko yang belum punya kode (dibuat di
  * website) diberi kode UUID dan disimpan, supaya paket dari HP nanti dikenali sebagai posko yang sama.
  *
- * Bagian posko & foto dipakai juga oleh PaketPoskoExport (paket lengkap).
+ * (Dulu juga dipakai tombol "Export untuk Aplikasi" di menu Lokasi; tombol itu sudah dihapus
+ * 10 Nov 2026 karena sudah tercakup oleh Export Paket Data Posko.)
  */
 class PoskoAplikasiExport
 {
-    public const VERSI_FORMAT = 1;
-
     public const KOLOM_POSKO = [
         'kode_posko', 'nama_lokasi', 'nama_desa', 'alamat_lokasi', 'luas_lokasi', 'kapasitas_pengungsi',
         'latitude', 'longitude', 'status_operasional', 'mulai_beroperasi_at', 'selesai_beroperasi_at',
         'relawan_penanggung_jawab', 'diubah_pada', 'foto', 'ketinggian_mdpl',
     ];
-
-    /** @param Collection<int, Lokasi> $poskos */
-    public function __construct(private Collection $poskos) {}
-
-    /** Buat file ZIP sementara, kembalikan path-nya. */
-    public function simpan(): string
-    {
-        $path = tempnam(sys_get_temp_dir(), 'posko_app_');
-        $zip  = new ZipArchive();
-        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-
-        $baris = $this->poskos->map(fn ($l) => self::barisPosko($l, $zip))->all();
-
-        $zip->addFromString('info.csv', self::csv(
-            ['versi_format', 'dibuat_pada', 'sumber', 'jumlah_posko'],
-            [[self::VERSI_FORMAT, now()->format('Y-m-d H:i:s'), 'website', count($baris)]]
-        ));
-        $zip->addFromString('posko.csv', self::csv(self::KOLOM_POSKO, $baris));
-        $zip->close();
-
-        return $path;
-    }
 
     /** Satu baris posko.csv (urutan = KOLOM_POSKO); foto ikut disalin ke ZIP. */
     public static function barisPosko(Lokasi $l, ZipArchive $zip): array

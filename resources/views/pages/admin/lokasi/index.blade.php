@@ -29,12 +29,6 @@
                 <i class="fas fa-file-excel text-sm"></i> Export Excel
             </a>
 
-            <!-- Export untuk aplikasi offline (ZIP: posko.csv + foto) -->
-            <a href="{{ route('admin.lokasi.export-aplikasi') }}" title="ZIP berisi data posko (CSV) dan foto, untuk diimpor di aplikasi HP. Posko yang ditolak tidak ikut."
-               class="inline-flex items-center justify-center gap-2 bg-gradient-to-tr from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black text-white font-bold px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl shadow-lg shadow-slate-500/30 transform transition-transform duration-300 hover:scale-[1.02]">
-                <i class="fas fa-mobile-alt text-sm"></i> Export untuk Aplikasi
-            </a>
-
             <!-- Import TEA dari aplikasi RUinRISK -->
             <a href="{{ route('admin.lokasi.ruinrisk.index') }}" title="Tambah Tempat Evakuasi Akhir dari file Data TEA aplikasi RUinRISK"
                class="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl shadow-sm border border-slate-200">
@@ -108,9 +102,6 @@
                                 <div class="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                     <a href="{{route('admin.lokasi.show', $lokasi->id)}}" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors border border-blue-100" title="Detail Lokasi">
                                         <i class="fas fa-eye text-xs"></i>
-                                    </a>
-                                    <a href="{{ route('admin.lokasi.export-aplikasi', ['lokasi' => $lokasi->id]) }}" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center hover:bg-slate-800 hover:text-white transition-colors border border-slate-200" title="Export posko ini untuk aplikasi (ZIP)">
-                                        <i class="fas fa-mobile-alt text-xs"></i>
                                     </a>
                                     <a href="{{route('admin.lokasi.edit', $lokasi->id)}}" class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-colors border border-amber-100" title="Edit Data">
                                         <i class="fas fa-edit text-xs"></i>

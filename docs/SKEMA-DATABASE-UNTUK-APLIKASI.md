@@ -493,6 +493,7 @@ Format angka: website menerima `1.250` (= 1250), `1.250,5`, `2,5`. Koordinat mem
 | mulai_beroperasi_at / selesai_beroperasi_at | tidak | |
 | relawan_penanggung_jawab | tidak | nama relawan lokal |
 | diubah_pada | ya | |
+| ketinggian_mdpl | tidak | meter di atas permukaan laut, desimal titik, 2 desimal, -50 s.d. 5000. Kolom tambahan (10 Nov 2026): paket **tanpa kolom ini** = ketinggian tidak diubah; kolom ada tapi kosong = dikosongkan |
 
 Pusat mencocokkan posko dengan `kode_posko`; jika belum pernah diimpor, dicocokkan dengan **nama_lokasi + nama_desa**
 (posko yang sudah ada di website), jika tidak ketemu dibuat sebagai posko baru.
@@ -706,3 +707,14 @@ HP Induk menampilkan "Kemungkinan Dobel"; supervisor memilih:
   saat impor pertama, lalu menyimpannya terenkripsi (`kata_sandi_pakets`) dan mencobanya otomatis. Paket lama yang
   tidak terkunci tetap diterima. File sinkron & penyiapan (antar-HP di posko) tidak dikunci.
 
+### 9.8 Paket dari website ke HP Induk (10 Nov 2026)
+- Website: **Paket Data Posko → Export paket untuk aplikasi** (`App\Exports\PaketPoskoExport`), dikunci kata sandi
+  yang diketik admin website (format `terkunci.enc` sama, PBKDF2 100.000 putaran). Formatnya sama dengan §8, ditambah
+  `info.csv` kolom `sumber` = `website`, `posko.csv` kolom `foto` (+ folder `foto/`) dan `ketinggian_mdpl`.
+- Aplikasi: **Paket Data Posko → Import dari Website Pusat** (`impor_website_bagian.dart`,
+  `GabungPaketService.periksaWebsite/terapkanWebsite`), **hanya HP Induk**. Aturan sama dengan gabung antar-HP, bedanya:
+  posko yang belum ada di HP **ditambahkan** dengan kode website; posko dicocokkan dengan kode lalu nama + desa
+  (nama sama tapi desa beda = error, nama posko di HP unik); akun (`petugas.csv`) & foto tidak diambil; setelah
+  digabung stok HP dibandingkan dengan `stok.csv` website dan selisihnya diperingatkan.
+- Paket website ditolak di Sinkron Antar-HP, dan file dari HP lain ditolak di Import dari Website.
+- Database aplikasi versi 11: `posko.ketinggian_mdpl REAL` (form, detail, info posko, paket, penyiapan, sinkron).

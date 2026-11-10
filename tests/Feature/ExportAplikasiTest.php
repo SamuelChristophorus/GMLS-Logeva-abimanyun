@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exports\PaketPoskoExport;
 use App\Exports\PoskoAplikasiExport;
 use App\Models\Desa;
 use App\Models\Lokasi;
@@ -14,7 +15,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use ZipArchive;
 
-/** Export lokasi untuk aplikasi offline: ZIP berisi posko.csv (format Paket Data Posko) + foto. */
+/**
+ * Bagian posko di Export Paket Data Posko (website -> aplikasi): posko.csv + foto.
+ * (Tombol lama "Export untuk Aplikasi" di menu Lokasi sudah dihapus; isinya tercakup paket.)
+ */
 class ExportAplikasiTest extends TestCase
 {
     use RefreshDatabase;
@@ -27,11 +31,28 @@ class ExportAplikasiTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_zip_berisi_posko_csv_dan_foto_dengan_kapasitas_dihitung_ulang(): void
+    /** posko.csv di paket (tanpa kunci) untuk posko yang tampil publik, seperti tombol export paket. */
+    private function paket(): array
+    {
+        $path = (new PaketPoskoExport(Lokasi::tampilPublik()->with('desa', 'relawan.user')->orderBy('nama_lokasi')->get(), 'tes'))->buatZipPolos();
+        $zip = new ZipArchive();
+        $zip->open($path);
+        $baris = array_map(fn ($b) => str_getcsv($b, ',', '"', ''), array_filter(explode("\n", $zip->getFromName('posko.csv'))));
+        $judul = array_shift($baris);
+        $foto = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $n = $zip->getNameIndex($i);
+            if (str_starts_with($n, 'foto/')) $foto[$n] = $zip->getFromName($n);
+        }
+        $zip->close();
+        @unlink($path);
+
+        return [$judul, collect($baris)->map(fn ($b) => array_combine($judul, $b))->keyBy('nama_lokasi'), $foto];
+    }
+
+    public function test_posko_csv_dan_foto_dengan_kapasitas_dihitung_ulang(): void
     {
         $this->seed(RolePermissionSeeder::class);
-        $admin = User::create(['name' => 'Admin', 'email' => 'admin@test.id', 'password' => bcrypt('x'), 'status' => 'approved', 'is_verified' => 1]);
-        $admin->assignRole('admin');
         $userRelawan = User::create(['name' => 'Raja Bimasakti', 'email' => 'r@test.id', 'password' => bcrypt('x'), 'status' => 'approved', 'is_verified' => 1]);
         $userRelawan->assignRole('relawan');
         $relawan = Relawan::create(['user_id' => $userRelawan->id, 'avatar' => 'assets/default/avatar.png']);
@@ -48,20 +69,12 @@ class ExportAplikasiTest extends TestCase
         $ditolak = Lokasi::create($dasar + ['nama_lokasi' => 'Posko Ditolak', 'luas_lokasi' => 35, 'kapasitas_pengungsi' => 10, 'gambar_lokasi' => 'x.jpg']);
         StatusLokasi::create(['lokasi_id' => $ditolak->id, 'status' => 'rejected', 'catatan' => 'Data tidak lengkap']);
 
-        $res = $this->actingAs($admin)->get(route('admin.lokasi.export-aplikasi'));
-        $res->assertOk()->assertDownload();
-
-        $zip = new ZipArchive();
-        $zip->open($res->baseResponse->getFile()->getPathname());
-
-        $baris = array_map(fn ($b) => str_getcsv($b, ',', '"', ''), array_filter(explode("\n", $zip->getFromName('posko.csv'))));
-        $judul = array_shift($baris);
-        $data  = collect($baris)->map(fn ($b) => array_combine($judul, $b))->keyBy('nama_lokasi');
+        [$judul, $data, $foto] = $this->paket();
 
         $this->assertSame(PoskoAplikasiExport::KOLOM_POSKO, $judul);
         // Kolom wajib posko.csv di Paket Data Posko semuanya ada -> alur HP <-> website nyambung
         $this->assertEmpty(array_diff(PaketDataPoskoService::KOLOM['posko.csv'], $judul));
-        $this->assertSame(['Balai Desa', 'SDN 1 Sawarna'], $data->keys()->all());
+        $this->assertSame(['Balai Desa', 'SDN 1 Sawarna'], $data->keys()->all(), 'posko yang ditolak tidak ikut');
 
         $this->assertSame('100', $data['SDN 1 Sawarna']['kapasitas_pengungsi']);
         $this->assertSame('Raja Bimasakti', $data['SDN 1 Sawarna']['relawan_penanggung_jawab']);
@@ -72,14 +85,18 @@ class ExportAplikasiTest extends TestCase
         $this->assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $sdn->fresh()->kode);
 
         $this->assertSame("foto/{$sdn->fresh()->kode}.jpg", $data['SDN 1 Sawarna']['foto']);
-        $this->assertSame('isi-foto-uji', $zip->getFromName($data['SDN 1 Sawarna']['foto']));
+        $this->assertSame('isi-foto-uji', $foto[$data['SDN 1 Sawarna']['foto']]);
         $this->assertSame('', $data['Balai Desa']['foto']);
-        $this->assertStringContainsString('jumlah_posko', $zip->getFromName('info.csv'));
 
         // Export ulang: kode tidak berubah
         $kodeLama = $sdn->fresh()->kode;
-        $this->actingAs($admin)->get(route('admin.lokasi.export-aplikasi', ['lokasi' => $sdn->id]))->assertOk();
+        $this->paket();
         $this->assertSame($kodeLama, $sdn->fresh()->kode);
         $this->assertNotNull($tanpaFoto->fresh()->kode);
+    }
+
+    public function test_tombol_lama_sudah_tidak_ada(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.lokasi.export-aplikasi'));
     }
 }

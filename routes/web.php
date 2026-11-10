@@ -178,10 +178,6 @@ Route::prefix('admin')
         Route::get('/lokasi/export', [LokasiController::class, 'export'])
             ->name('lokasi.export');
 
-        // Untuk aplikasi offline: ZIP berisi posko.csv + foto (semua posko, atau ?lokasi=ID)
-        Route::get('/lokasi/export-aplikasi', [LokasiController::class, 'exportAplikasi'])
-            ->name('lokasi.export-aplikasi');
-
         // Setujui / tolak permintaan mulai-tutup operasi dari relawan
         Route::patch('/permintaan-operasional/{permintaan}/setujui', [PermintaanOperasionalController::class, 'setujui'])
             ->name('permintaan-operasional.setujui');
