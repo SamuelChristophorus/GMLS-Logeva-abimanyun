@@ -164,7 +164,7 @@
                     <div class="p-5 flex flex-col flex-1 gap-4">
                         <div>
                             <a href="{{ route('lokasi.show', $lokasi->id) }}">
-                                <h3 class="text-lg font-extrabold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{{ $lokasi->nama_lokasi }}</h3>
+                                <h3 class="text-lg font-extrabold text-slate-800 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors" title="{{ $lokasi->nama_lokasi }}">{{ $lokasi->nama_lokasi }}</h3>
                             </a>
                             <p class="mt-1 text-sm text-slate-500 flex items-start gap-2">
                                 <i class="fas fa-map-marker-alt text-rose-400 mt-1 text-xs"></i>

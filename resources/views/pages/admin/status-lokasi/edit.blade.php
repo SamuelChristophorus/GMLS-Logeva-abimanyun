@@ -114,7 +114,7 @@
                                 </div>
                                 <div class="bg-white rounded-xl p-4 border border-amber-100 shadow-sm">
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Dibuat Pada</p>
-                                    <p class="text-sm font-bold text-slate-700">{{ $status->created_at->format('d M Y, H:i') }}</p>
+                                    <p class="text-sm font-bold text-slate-700">{{ $status->created_at->translatedFormat('d M Y, H:i') }}</p>
                                 </div>
                                 <div class="bg-white rounded-xl p-4 border border-amber-100 shadow-sm">
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Catatan Sebelumnya</p>

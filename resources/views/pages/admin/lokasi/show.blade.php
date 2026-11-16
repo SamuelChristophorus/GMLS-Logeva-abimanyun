@@ -239,7 +239,7 @@
                         <tbody class="divide-y divide-slate-50">
                             @forelse ($lokasi->statusLokasi()->latest()->get() as $status)
                             <tr class="hover:bg-slate-50/50 transition-colors group">
-                                <td class="py-4 px-4 text-sm font-bold text-slate-600 whitespace-nowrap">{{ $status->created_at->format('d M Y, H:i') }}</td>
+                                <td class="py-4 px-4 text-sm font-bold text-slate-600 whitespace-nowrap">{{ $status->created_at->translatedFormat('d M Y, H:i') }}</td>
                                 <td class="py-4 px-4">
                                     @php
                                         $badgeBg = match ($status->status) {
