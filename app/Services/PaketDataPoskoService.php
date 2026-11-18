@@ -485,7 +485,7 @@ class PaketDataPoskoService
             'nomor_kk'          => $kk !== '' ? $kk : null,
             'usia'              => $usia ?? 0,
             'jenis_kelamin'     => $r['jenis_kelamin'],
-            'kondisi_kesehatan' => N::teks($r['kondisi_kesehatan']) ?? 'Sehat',
+            'kondisi_kesehatan' => \App\Support\KondisiKesehatan::rapikan(N::teks($r['kondisi_kesehatan'])) ?? 'Sehat',
             'kelompok_rentan'   => $rentan,
             'riwayat_penyakit'  => N::teks($r['riwayat_penyakit']),
             'dicatat_oleh'      => ($oleh = N::teks($r['dicatat_oleh'] ?? null)) ? mb_substr($oleh, 0, 255) : null,

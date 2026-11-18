@@ -151,7 +151,7 @@ class OperasionalLokasiService
 
     /**
      * Pengungsi yang perlu perhatian medis: sedang sakit (kondisi kesehatan selain "Sehat"),
-     * punya riwayat penyakit, atau termasuk kelompok rentan. Yang sakit di urutan atas.
+     * punya riwayat penyakit, atau termasuk kelompok rentan. Paling gawat di urutan atas.
      */
     private function perhatianMedis(Lokasi $lokasi): Collection
     {
@@ -163,8 +163,13 @@ class OperasionalLokasiService
                 ->orWhere(fn ($q) => $q->whereNotNull('riwayat_penyakit')->where('riwayat_penyakit', '!=', ''))
                 ->orWhere('kelompok_rentan', '!=', 'Tidak'))
             ->select('id', 'nama', 'usia', 'jenis_kelamin', 'kondisi_kesehatan', 'kelompok_rentan', 'riwayat_penyakit',
-                DB::raw("CASE WHEN {$sehat} THEN 0 ELSE 1 END as sakit"))
-            ->orderByDesc('sakit')
+                DB::raw("CASE WHEN {$sehat} THEN 0 ELSE 1 END as sakit"),
+                // Paling gawat di atas (sama dengan aplikasi): Perlu rujukan, Sakit berat, Sakit ringan.
+                DB::raw("CASE WHEN {$sehat} THEN 0
+                    WHEN LOWER(TRIM(kondisi_kesehatan)) LIKE 'perlu rujukan%' THEN 3
+                    WHEN LOWER(TRIM(kondisi_kesehatan)) LIKE 'sakit berat%' THEN 2
+                    ELSE 1 END as tingkat"))
+            ->orderByDesc('tingkat')
             ->orderByDesc('usia')
             ->get()
             ->map(function ($p) {

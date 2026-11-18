@@ -222,10 +222,26 @@
                             Kondisi Kesehatan
                         </label>
 
+                        @php $kondisi = \App\Support\KondisiKesehatan::pisah($pengungsi->kondisi_kesehatan); @endphp
+                        <select name="kondisi_pilihan"
+                                required
+                                class="w-full rounded-[22px]
+                                       border border-slate-200
+                                       px-5 py-4
+                                       focus:ring-2 focus:ring-slate-900">
+                            @if ($kondisi['pilihan'] === null)
+                                <option value="" selected disabled>Pilih kondisi (data lama: "{{ $kondisi['keterangan'] }}")</option>
+                            @endif
+                            @foreach (\App\Support\KondisiKesehatan::PILIHAN as $k)
+                                <option value="{{ $k }}" {{ $kondisi['pilihan'] === $k ? 'selected' : '' }}>{{ $k }}</option>
+                            @endforeach
+                        </select>
+
                         <input type="text"
-                               name="kondisi_kesehatan"
-                               value="{{ $pengungsi->kondisi_kesehatan }}"
-                               class="w-full rounded-[22px]
+                               name="kondisi_keterangan"
+                               value="{{ $kondisi['keterangan'] }}"
+                               placeholder="Keterangan (opsional), contoh: demam, luka di kaki"
+                               class="mt-3 w-full rounded-[22px]
                                       border border-slate-200
                                       px-5 py-4
                                       focus:ring-2 focus:ring-slate-900">

@@ -22,6 +22,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Support\KondisiKesehatan;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -811,5 +812,27 @@ Tanpa Umur,X,,,Laki-laki
         $this->actingAs($this->admin)->post(route('pengungsi.import.preview', $lokasi->id),
             ['file' => new UploadedFile($path, 'x.csv', 'text/csv', null, true)])
             ->assertOk()->assertSee('Isi tanggal lahir atau usia');
+    }
+
+    public function test_kondisi_kesehatan_pilihan_dan_keterangan(): void
+    {
+        $this->impor($this->paket());
+        $lokasi = Lokasi::first();
+        $kirim = fn (array $isi) => $this->actingAs($this->admin)->post(route('pengungsi.store', $lokasi->id),
+            $isi + ['asal' => 'X', 'usia' => 30, 'jenis_kelamin' => 'Perempuan']);
+
+        $kirim(['nama' => 'Rina', 'kondisi_pilihan' => 'Sakit ringan', 'kondisi_keterangan' => ' demam  tinggi '])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Sakit ringan - demam tinggi', Pengungsi::where('nama', 'Rina')->value('kondisi_kesehatan'));
+
+        // Sehat tidak memakai keterangan; pilihan di luar daftar ditolak.
+        $kirim(['nama' => 'Wati', 'kondisi_pilihan' => 'Sehat', 'kondisi_keterangan' => 'sisa'])->assertSessionHasNoErrors();
+        $this->assertSame('Sehat', Pengungsi::where('nama', 'Wati')->value('kondisi_kesehatan'));
+        $kirim(['nama' => 'Salah', 'kondisi_pilihan' => 'Pusing'])->assertSessionHasErrors('kondisi_pilihan');
+
+        // Penulisan dari Excel diseragamkan; teks lama tetap diterima.
+        $this->assertSame('Sakit berat - sesak', KondisiKesehatan::rapikan('SAKIT BERAT: sesak'));
+        $this->assertSame('Demam', KondisiKesehatan::rapikan('Demam'));
+        $this->assertNull(KondisiKesehatan::pisah('Demam')['pilihan']);
     }
 }

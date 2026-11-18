@@ -67,7 +67,7 @@ class PengungsiImportController extends Controller
                 ['Nomor KK',          'opsional', 'Boleh dikosongkan jika tidak diketahui. Jika diisi: 16 digit angka. Kolom ini sudah diatur sebagai teks agar digit terakhir tidak hilang.', 22],
                 ['Usia',              'wajib*', '*Isi jika Tanggal Lahir tidak diketahui (angka 0-130). Kalau Tanggal Lahir diisi, usia dihitung otomatis.', 8],
                 ['Jenis Kelamin',     'wajib', 'Laki-laki atau Perempuan (L / P juga diterima).', 16],
-                ['Kondisi Kesehatan', 'opsional', 'Contoh: Sehat, Demam, Luka ringan. Kosong = Sehat.', 20],
+                ['Kondisi Kesehatan', 'opsional', 'Pilihan: Sehat, Sakit ringan, Sakit berat, Perlu rujukan. Boleh ditambah keterangan, contoh: Sakit ringan - Demam. Kosong = Sehat.', 20],
                 ['Kelompok Rentan',   'opsional', 'Salah satu: ' . implode(', ', self::KELOMPOK_RENTAN) . '. Kosong = Tidak.', 18],
                 ['Riwayat Penyakit',  'opsional', 'Contoh: Hipertensi, Diabetes.', 24],
             ],
@@ -187,7 +187,8 @@ class PengungsiImportController extends Controller
 
             $nama    = N::teks($r['nama'] ?? null);
             $asal    = N::teks($r['asal'] ?? null);
-            $kondisi = N::teks($r['kondisi_kesehatan'] ?? null);
+            // Pilihan diseragamkan ("sakit ringan - demam" -> "Sakit ringan - demam").
+            $kondisi = \App\Support\KondisiKesehatan::rapikan(N::teks($r['kondisi_kesehatan'] ?? null));
             $riwayat = N::teks($r['riwayat_penyakit'] ?? null);
 
             if (! $nama) {

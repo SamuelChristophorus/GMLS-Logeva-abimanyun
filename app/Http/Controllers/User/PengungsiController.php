@@ -53,6 +53,8 @@ class PengungsiController extends Controller
             'usia' => 'required_without:tanggal_lahir|nullable|integer|min:0|max:130',
             'jenis_kelamin' => 'required',
             'kondisi_kesehatan' => 'nullable',
+            'kondisi_pilihan' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\KondisiKesehatan::PILIHAN)],
+            'kondisi_keterangan' => 'nullable|string|max:150',
             'kelompok_rentan' => 'nullable',
             'riwayat_penyakit' => 'nullable'
         ]);
@@ -73,7 +75,7 @@ class PengungsiController extends Controller
             'usia' => $this->usia($request),
             'jenis_kelamin' => $request->jenis_kelamin,
             // Kosong = Sehat / Tidak (aturan website; kolom database wajib terisi)
-            'kondisi_kesehatan' => $request->kondisi_kesehatan ?: 'Sehat',
+            'kondisi_kesehatan' => $this->kondisi($request),
             'kelompok_rentan' => $request->kelompok_rentan ?: 'Tidak',
             'riwayat_penyakit' => $request->riwayat_penyakit
         ]);
@@ -138,7 +140,9 @@ class PengungsiController extends Controller
             // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
             'nomor_kk' => 'nullable|digits:16',
             'usia' => 'required_without:tanggal_lahir|nullable|integer|min:0|max:130',
-            'jenis_kelamin' => 'required'
+            'jenis_kelamin' => 'required',
+            'kondisi_pilihan' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\KondisiKesehatan::PILIHAN)],
+            'kondisi_keterangan' => 'nullable|string|max:150',
         ]);
 
         if ($request->hasFile('foto')) {
@@ -153,7 +157,7 @@ class PengungsiController extends Controller
         $pengungsi->nomor_kk = $request->nomor_kk;
         $pengungsi->usia = $this->usia($request);
         $pengungsi->jenis_kelamin = $request->jenis_kelamin;
-        $pengungsi->kondisi_kesehatan = $request->kondisi_kesehatan ?: 'Sehat';
+        $pengungsi->kondisi_kesehatan = $this->kondisi($request);
         $pengungsi->kelompok_rentan = $request->kelompok_rentan ?: 'Tidak';
         $pengungsi->riwayat_penyakit = $request->riwayat_penyakit;
 
@@ -224,5 +228,17 @@ class PengungsiController extends Controller
         return $request->filled('tanggal_lahir')
             ? (int) \Carbon\Carbon::parse($request->tanggal_lahir)->diffInYears(now())
             : (int) $request->usia;
+    }
+
+    /**
+     * Kondisi kesehatan: pilihan + keterangan (form baru). Form/klien lama yang
+     * masih mengirim kondisi_kesehatan berupa teks tetap diterima.
+     */
+    private function kondisi(Request $request): string
+    {
+        if ($request->filled('kondisi_pilihan')) {
+            return \App\Support\KondisiKesehatan::gabung($request->kondisi_pilihan, $request->kondisi_keterangan);
+        }
+        return \App\Support\KondisiKesehatan::rapikan($request->kondisi_kesehatan) ?: 'Sehat';
     }
 }

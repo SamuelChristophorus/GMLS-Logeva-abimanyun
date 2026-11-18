@@ -338,10 +338,21 @@
                 Kondisi Kesehatan
             </label>
 
+            <select name="kondisi_pilihan"
+                    class="w-full rounded-[22px]
+                           border border-slate-200
+                           px-5 py-4
+                           bg-white
+                           focus:ring-2 focus:ring-slate-900">
+                @foreach (\App\Support\KondisiKesehatan::PILIHAN as $k)
+                    <option value="{{ $k }}">{{ $k }}</option>
+                @endforeach
+            </select>
+
             <input type="text"
-                   name="kondisi_kesehatan"
-                   placeholder="Sehat / Demam / Luka"
-                   class="w-full rounded-[22px]
+                   name="kondisi_keterangan"
+                   placeholder="Keterangan (opsional), contoh: demam, luka di kaki"
+                   class="mt-3 w-full rounded-[22px]
                           border border-slate-200
                           px-5 py-4
                           bg-white
