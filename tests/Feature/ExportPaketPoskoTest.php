@@ -57,6 +57,15 @@ class ExportPaketPoskoTest extends TestCase
         StokLogistik::create(['lokasi_id' => $posko->id, 'logistik_id' => $beras->id, 'jumlah_stok' => 40, 'status_ketersediaan' => 'Kuning']);
         PetugasPosko::create(['lokasi_id' => $posko->id, 'kode_perangkat' => 'hp-1', 'peran' => PetugasPosko::RELAWAN, 'nama' => 'Ujang', 'kontak' => '0812', 'paket_dibuat_pada' => now()]);
 
+        // Pengungsi yang dihapus di website ikut sebagai tanda hapus (tanpa biodata).
+        // (punya kode = pernah dikirim ke / dari HP)
+        $hapus = Pengungsi::create(['lokasi_id' => $posko->id, 'nama' => 'Dihapus', 'asal' => 'X', 'usia' => 20,
+            'jenis_kelamin' => 'Laki-laki', 'kondisi_kesehatan' => 'Sehat', 'kelompok_rentan' => 'Tidak']);
+        $hapus->forceFill(['kode' => (string) \Illuminate\Support\Str::uuid()])->save();
+        $this->actingAs($admin)->delete(route('pengungsi.destroy', $hapus->id));
+        $kodeHapus = \Illuminate\Support\Facades\DB::table('paket_penghapusans')->value('kode');
+        $this->assertNotNull($kodeHapus);
+
         $diubahSiti = $siti->fresh()->updated_at->toDateTimeString();
         $jumlah = fn () => [Lokasi::count(), Pengungsi::semuaKeberadaan()->count(), StokMasuk::count(), StokKeluar::count(), (int) StokLogistik::sum('jumlah_stok')];
         $sebelum = $jumlah();
@@ -87,7 +96,11 @@ class ExportPaketPoskoTest extends TestCase
         foreach (['posko', 'pengungsi', 'masuk', 'keluar', 'petugas'] as $k) {
             $this->assertSame([], collect($hasil[$k])->where('status', 'error')->map(fn ($b) => $b['error'])->values()->all(), "error di {$k}");
         }
-        $this->assertCount(2, $hasil['pengungsi']);
+        $tanda = collect($hasil['pengungsi'])->firstWhere('kode', $kodeHapus);
+        $this->assertNotNull($tanda, 'tanda hapus ikut di paket');
+        $this->assertSame('(dihapus di website)', $tanda['data']['nama']);
+        $this->assertSame('lewati', $tanda['status'], 'tidak diimpor lagi ke website');
+        $this->assertCount(3, $hasil['pengungsi']);
         $this->assertCount(1, $hasil['masuk']);
         $this->assertCount(1, $hasil['keluar']);
         $this->assertSame([], $hasil['posko_baru']);

@@ -448,6 +448,17 @@ class PaketDataPoskoService
 
     private function periksaPengungsi(array $r, callable $cariPosko, array &$kodeDipakai, $dihapus, $lamaByKode, array &$peringatan): array
     {
+        // Tanda hapus dari paket website (kode_posko kosong, tanpa biodata, lihat
+        // PaketPoskoExport): untuk HP, bukan untuk diimpor lagi ke website.
+        if (($r['kode_posko'] ?? '') === '' && ($r['dihapus_pada'] ?? '') !== '') {
+            return [
+                'row' => $r['_row'], 'kode' => $r['kode'], 'status' => 'lewati',
+                'alasan' => 'Tanda hapus dari website', 'error' => [],
+                'data' => ['nama' => $r['nama'] ?? '-', 'posko' => '-', 'usia' => 0, 'jenis_kelamin' => '-'],
+                'simpan' => null, 'lama_id' => null,
+            ];
+        }
+
         $error = [];
         $kode = $r['kode'];
         $posko = $cariPosko($r, $error);

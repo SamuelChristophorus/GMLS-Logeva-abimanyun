@@ -41,7 +41,7 @@
         <!-- Upload -->
         <div class="lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
             <h2 class="text-lg font-extrabold text-slate-800 mb-1">Upload paket</h2>
-            <p class="text-sm text-slate-500 mb-5">File <b>paket_&lt;nama-posko&gt;_&lt;tanggal&gt;.zip</b> dari menu Ekspor Paket Data Posko di aplikasi.</p>
+            <p class="text-sm text-slate-500 mb-5">File <b>LOGEVA_paket_&lt;nama-posko&gt;_&lt;tanggal&gt;.zip</b> di folder <b>LOGEVA</b> pada flashdisk (dari aplikasi: Data → Paket Data Posko → Ekspor ke USB).</p>
 
             <form method="POST" action="{{ route('admin.paket.preview') }}" enctype="multipart/form-data">
                 @csrf

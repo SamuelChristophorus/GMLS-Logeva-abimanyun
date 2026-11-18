@@ -107,6 +107,18 @@ class PaketPoskoExport
             }
         }
 
+        // Pengungsi yang DIHAPUS di website: baris tanda hapus (kode + waktu,
+        // tanpa biodata) supaya HP Induk & HP Anggota ikut menghapusnya.
+        // kode_posko kosong: aplikasi lama melewatinya, aplikasi baru (1.0.7+)
+        // hanya menandai yang memang ada di HP itu.
+        foreach (\Illuminate\Support\Facades\DB::table('paket_penghapusans')->where('jenis', 'pengungsi')->get() as $h) {
+            $waktu = $this->waktu($h->dihapus_pada ?? $h->created_at);
+            $pengungsi[] = [
+                $h->kode, '', '(dihapus di website)', '', '', '', 0, 'Laki-laki', 'Sehat', 'Tidak', '', '',
+                $waktu, $waktu, $waktu, Pengungsi::DI_POSKO, '', '',
+            ];
+        }
+
         $zip->addFromString('info.csv', $csv([...$k['info.csv'], 'sumber'], [[
             PaketDataPoskoService::VERSI_FORMAT, now()->format('Y-m-d H:i:s'), self::kodePerangkatWebsite(), $this->dieksporOleh, 'website',
         ]]));
