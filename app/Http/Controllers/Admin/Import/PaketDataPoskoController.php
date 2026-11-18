@@ -70,7 +70,7 @@ class PaketDataPoskoController extends Controller
             return back()->withErrors(['lokasi' => 'Posko tidak ditemukan atau laporannya ditolak.']);
         }
 
-        $nama = 'paket_pusat_'
+        $nama = 'LOGEVA_paket_pusat_'
             . ($poskos->count() === 1 ? Str::slug($poskos->first()->nama_lokasi, '_') : 'semua_posko')
             . '_' . now()->format('Ymd-Hi') . '.zip';
 
@@ -93,7 +93,7 @@ class PaketDataPoskoController extends Controller
             'kata_sandi' => 'nullable|string|max:100',
         ], [
             'file.required' => 'Pilih file paket (.zip) dari aplikasi.',
-            'file.mimes'    => 'File harus berformat .zip (paket_....zip dari aplikasi).',
+            'file.mimes'    => 'File harus berformat .zip (LOGEVA_paket_....zip dari aplikasi).',
             'file.max'      => 'Ukuran file maksimal 10 MB.',
         ]);
 

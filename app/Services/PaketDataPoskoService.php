@@ -117,7 +117,7 @@ class PaketDataPoskoService
     {
         $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
-            throw new DomainException('File bukan ZIP yang valid. Pilih file paket_....zip dari aplikasi.');
+            throw new DomainException('File bukan ZIP yang valid. Pilih file LOGEVA_paket_....zip dari aplikasi.');
         }
 
         $isi = [];

@@ -77,6 +77,18 @@
 
                     <div class="flex flex-col sm:flex-row p-4 hover:bg-white transition-colors rounded-xl">
                         <div class="w-full sm:w-1/3 md:w-1/4 text-sm font-bold text-slate-500 mb-1 sm:mb-0 flex items-center gap-2">
+                            <i class="fas fa-calendar-plus text-slate-300 w-4 text-center"></i> Akun Dibuat
+                        </div>
+                        <div class="w-full sm:w-2/3 md:w-3/4 text-sm text-slate-800">
+                            {{ $relawan->created_at?->timezone(config('app.timezone'))->format('d-m-Y H:i') ?? '-' }} WIB
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {{ \App\Support\LamaWaktu::sejak($relawan->created_at) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row p-4 hover:bg-white transition-colors rounded-xl">
+                        <div class="w-full sm:w-1/3 md:w-1/4 text-sm font-bold text-slate-500 mb-1 sm:mb-0 flex items-center gap-2">
                             <i class="fas fa-user-shield text-slate-300 w-4 text-center"></i> Role Sistem
                         </div>
                         <div class="w-full sm:w-2/3 md:w-3/4 text-sm text-slate-800">

@@ -75,6 +75,13 @@
                                             {{ $relawan->user->email }}
                                         </span>
                                     </div>
+                                    <div class="flex items-center gap-1.5 mt-1 text-slate-400"
+                                         title="Akun dibuat {{ $relawan->created_at?->timezone(config('app.timezone'))->format('d-m-Y H:i') }} WIB">
+                                        <i class="fas fa-calendar-plus text-[10px] opacity-70"></i>
+                                        <span class="text-xs font-medium">
+                                            Akun dibuat {{ \App\Support\LamaWaktu::sejak($relawan->created_at) }}
+                                        </span>
+                                    </div>
                                 </div>
                             </td>
 
