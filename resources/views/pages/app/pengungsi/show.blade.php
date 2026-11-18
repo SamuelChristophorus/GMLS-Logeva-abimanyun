@@ -87,7 +87,7 @@
                     </p>
 
                     <h3 class="text-lg font-bold text-slate-800">
-                        {{ $pengungsi->tanggal_lahir }}
+                        {{ $pengungsi->tanggal_lahir ?: 'Tidak diketahui (usia diisi langsung)' }}
                     </h3>
 
                 </div>

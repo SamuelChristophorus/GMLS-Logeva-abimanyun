@@ -46,10 +46,11 @@ class PengungsiController extends Controller
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'nama' => 'required',
             'asal' => 'required',
-            'tanggal_lahir' => 'required|date',
+            // Isi tanggal lahir ATAU usia (sama dengan aplikasi LOGEVA Client).
+            'tanggal_lahir' => 'nullable|date|before_or_equal:today|after:1899-12-31',
             // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
             'nomor_kk' => 'nullable|digits:16',
-            'usia' => 'required|integer',
+            'usia' => 'required_without:tanggal_lahir|nullable|integer|min:0|max:130',
             'jenis_kelamin' => 'required',
             'kondisi_kesehatan' => 'nullable',
             'kelompok_rentan' => 'nullable',
@@ -67,9 +68,9 @@ class PengungsiController extends Controller
             'foto' => $fotoPath,
             'nama' => $request->nama,
             'asal' => $request->asal,
-            'tanggal_lahir' => $request->tanggal_lahir,
+            'tanggal_lahir' => $request->tanggal_lahir ?: null,
             'nomor_kk' => $request->nomor_kk,
-            'usia' => $request->usia,
+            'usia' => $this->usia($request),
             'jenis_kelamin' => $request->jenis_kelamin,
             // Kosong = Sehat / Tidak (aturan website; kolom database wajib terisi)
             'kondisi_kesehatan' => $request->kondisi_kesehatan ?: 'Sehat',
@@ -132,10 +133,11 @@ class PengungsiController extends Controller
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'nama' => 'required',
             'asal' => 'required',
-            'tanggal_lahir' => 'required|date',
+            // Isi tanggal lahir ATAU usia (sama dengan aplikasi LOGEVA Client).
+            'tanggal_lahir' => 'nullable|date|before_or_equal:today|after:1899-12-31',
             // Boleh kosong (dokumen bisa hilang saat bencana); jika diisi harus 16 digit.
             'nomor_kk' => 'nullable|digits:16',
-            'usia' => 'required|integer',
+            'usia' => 'required_without:tanggal_lahir|nullable|integer|min:0|max:130',
             'jenis_kelamin' => 'required'
         ]);
 
@@ -147,9 +149,9 @@ class PengungsiController extends Controller
 
         $pengungsi->nama = $request->nama;
         $pengungsi->asal = $request->asal;
-        $pengungsi->tanggal_lahir = $request->tanggal_lahir;
+        $pengungsi->tanggal_lahir = $request->tanggal_lahir ?: null;
         $pengungsi->nomor_kk = $request->nomor_kk;
-        $pengungsi->usia = $request->usia;
+        $pengungsi->usia = $this->usia($request);
         $pengungsi->jenis_kelamin = $request->jenis_kelamin;
         $pengungsi->kondisi_kesehatan = $request->kondisi_kesehatan ?: 'Sehat';
         $pengungsi->kelompok_rentan = $request->kelompok_rentan ?: 'Tidak';
@@ -214,5 +216,13 @@ class PengungsiController extends Controller
             new PengungsiExport($lokasi),
             'data_pengungsi.xlsx'
         );
+    }
+
+    /** Usia dari tanggal lahir kalau diisi; kalau tidak, usia yang diketik. */
+    private function usia(Request $request): int
+    {
+        return $request->filled('tanggal_lahir')
+            ? (int) \Carbon\Carbon::parse($request->tanggal_lahir)->diffInYears(now())
+            : (int) $request->usia;
     }
 }

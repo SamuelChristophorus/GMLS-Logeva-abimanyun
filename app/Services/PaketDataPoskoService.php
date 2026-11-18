@@ -432,7 +432,7 @@ class PaketDataPoskoService
             'error'  => $error,
             'data'   => [
                 'nama'   => $nama,
-                'peran'  => $peran === PetugasPosko::ADMIN ? 'Admin (penanggung jawab)' : 'Relawan',
+                'peran'  => $peran === PetugasPosko::ADMIN ? 'Admin Posko (penanggung jawab)' : 'Relawan',
                 'posko'  => $peran === PetugasPosko::ADMIN ? 'Semua posko di paket' : ($kePosko[$kode]['data']['nama_lokasi'] ?? '-'),
                 'kontak' => N::teks($r['kontak']),
             ],

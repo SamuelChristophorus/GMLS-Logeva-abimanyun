@@ -35,6 +35,6 @@ class PetugasPosko extends Model
 
     public function labelPeran(): string
     {
-        return $this->peran === self::ADMIN ? 'Admin (penanggung jawab)' : 'Relawan';
+        return $this->peran === self::ADMIN ? 'Admin Posko (penanggung jawab)' : 'Relawan';
     }
 }

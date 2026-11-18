@@ -63,9 +63,9 @@ class PengungsiImportController extends Controller
             [
                 ['Nama',              'wajib', 'Nama lengkap pengungsi.', 28],
                 ['Asal',              'wajib', 'Asal desa / alamat sebelum mengungsi.', 24],
-                ['Tanggal Lahir',     'wajib', 'Format TAHUN-BULAN-TANGGAL, contoh: 1990-07-25. Format 25-07-1990 atau 25/07/1990 juga diterima.', 16],
+                ['Tanggal Lahir',     'wajib*', '*Isi Tanggal Lahir ATAU Usia. Format TAHUN-BULAN-TANGGAL, contoh: 1990-07-25. Format 25-07-1990 atau 25/07/1990 juga diterima.', 16],
                 ['Nomor KK',          'opsional', 'Boleh dikosongkan jika tidak diketahui. Jika diisi: 16 digit angka. Kolom ini sudah diatur sebagai teks agar digit terakhir tidak hilang.', 22],
-                ['Usia',              'opsional', 'Boleh dikosongkan: dihitung otomatis dari tanggal lahir.', 8],
+                ['Usia',              'wajib*', '*Isi jika Tanggal Lahir tidak diketahui (angka 0-130). Kalau Tanggal Lahir diisi, usia dihitung otomatis.', 8],
                 ['Jenis Kelamin',     'wajib', 'Laki-laki atau Perempuan (L / P juga diterima).', 16],
                 ['Kondisi Kesehatan', 'opsional', 'Contoh: Sehat, Demam, Luka ringan. Kosong = Sehat.', 20],
                 ['Kelompok Rentan',   'opsional', 'Salah satu: ' . implode(', ', self::KELOMPOK_RENTAN) . '. Kosong = Tidak.', 18],
@@ -100,7 +100,7 @@ class PengungsiImportController extends Controller
             return $this->kembali($lokasi, $validator->errors()->first(), 'error');
         }
 
-        $hasil = SpreadsheetReader::read($request->file('file'), self::KOLOM_FILE, ['nama', 'tanggal_lahir', 'jenis_kelamin']);
+        $hasil = SpreadsheetReader::read($request->file('file'), self::KOLOM_FILE, ['nama', 'jenis_kelamin']);
 
         if ($hasil['missing']) {
             $label = collect($hasil['missing'])->map(fn ($k) => '"' . self::KOLOM_TAMPIL[$k] . '"')->implode(', ');
@@ -175,7 +175,10 @@ class PengungsiImportController extends Controller
     private function periksa(Lokasi $lokasi, array $rows): array
     {
         $existing = Pengungsi::where('lokasi_id', $lokasi->id)->get()
-            ->keyBy(fn ($p) => N::kunci($p->nama) . '|' . ($p->tanggal_lahir ? Carbon::parse($p->tanggal_lahir)->toDateString() : ''));
+            // Orang yang sama: nama + tanggal lahir, atau nama + usia kalau tanggal lahir kosong.
+            ->keyBy(fn ($p) => N::kunci($p->nama) . '|' . ($p->tanggal_lahir
+                ? Carbon::parse($p->tanggal_lahir)->toDateString()
+                : 'usia:' . (int) $p->usia));
         $dipakai = [];
         $hasil   = [];
 
@@ -197,9 +200,10 @@ class PengungsiImportController extends Controller
             }
 
             // --- tanggal lahir & usia ---
+            // Isi tanggal lahir ATAU usia (sama dengan aplikasi LOGEVA Client).
             $tanggal = $this->tanggal($r['tanggal_lahir'] ?? null);
             if ($tanggal === null) {
-                $error[] = 'Tanggal lahir kosong';
+                // boleh kosong kalau usia diisi (dicek di bawah)
             } elseif ($tanggal === false) {
                 $error[] = 'Tanggal lahir tidak dikenali, gunakan format TAHUN-BULAN-TANGGAL (contoh: 1990-07-25)';
             } elseif ($tanggal->isFuture() || $tanggal->year < 1900) {
@@ -213,6 +217,9 @@ class PengungsiImportController extends Controller
                 $error[] = 'Usia harus bilangan bulat 0–130';
             } elseif ($usia !== null && $usiaHitung !== null && abs($usia - $usiaHitung) > 1) {
                 $error[] = "Usia ({$usia}) tidak sesuai tanggal lahir (seharusnya {$usiaHitung} tahun)";
+            }
+            if ($tanggal === null && $usia === null) {
+                $error[] = 'Isi tanggal lahir atau usia';
             }
             $usia = $usia === null || $usia === false ? $usiaHitung : (int) $usia;
 
@@ -245,7 +252,9 @@ class PengungsiImportController extends Controller
             }
 
             // --- duplikat ---
-            $kunci = $nama && $tanggalValid ? N::kunci($nama) . '|' . $tanggal->toDateString() : null;
+            $kunci = ! $nama ? null : ($tanggalValid
+                ? N::kunci($nama) . '|' . $tanggal->toDateString()
+                : ($tanggal === null && is_int($usia) ? N::kunci($nama) . '|usia:' . $usia : null));
             if ($kunci && isset($dipakai[$kunci])) {
                 $error[] = "Pengungsi sama dengan baris {$dipakai[$kunci]}";
             } elseif ($kunci) {

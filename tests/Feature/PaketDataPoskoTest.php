@@ -205,7 +205,8 @@ class PaketDataPoskoTest extends TestCase
         $siti = Pengungsi::where('kode', self::SITI)->first();
         $this->assertNull($siti->nomor_kk, 'KK boleh kosong');
         $this->assertSame('Lansia', $siti->kelompok_rentan);
-        $this->assertNull(Pengungsi::where('kode', self::BUDI)->value('tanggal_lahir'), 'data lama tanpa tanggal lahir diterima');
+        $this->assertNull(Pengungsi::where('kode', self::BUDI)->value('tanggal_lahir'), 'pengungsi tanpa tanggal lahir diterima');
+        $this->assertSame(40, (int) Pengungsi::where('kode', self::BUDI)->value('usia'), 'usia dari aplikasi dipakai');
 
         $this->assertSame(2, StokMasuk::count());
         $this->assertSame(1, StokKeluar::count());
@@ -303,7 +304,7 @@ class PaketDataPoskoTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.paket.preview'), ['file' => $this->paket()])
             ->assertOk()
             ->assertSee('Petugas Lapangan')
-            ->assertSee('Admin (penanggung jawab)')
+            ->assertSee('Admin Posko (penanggung jawab)')
             ->assertSee('0812-3456-7890');
 
         $this->impor($this->paket());
@@ -749,5 +750,66 @@ class PaketDataPoskoTest extends TestCase
         $this->impor($this->paket());
         $this->assertNull(Pengungsi::where('kode', self::SITI)->first());
         $this->assertSame(0, DB::table('pengungsis')->where('nama', 'Siti Aminah')->count());
+    }
+
+    public function test_form_website_tanggal_lahir_atau_usia(): void
+    {
+        $this->impor($this->paket());
+        $lokasi = Lokasi::first();
+        $kirim = fn (array $isi) => $this->actingAs($this->admin)->post(route('pengungsi.store', $lokasi->id),
+            $isi + ['asal' => 'X', 'nomor_kk' => '', 'jenis_kelamin' => 'Perempuan']);
+
+        // Usia saja (tanggal lahir tidak diketahui).
+        $kirim(['nama' => 'Hanya Usia', 'tanggal_lahir' => '', 'usia' => 70])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('pengungsis', ['nama' => 'Hanya Usia', 'tanggal_lahir' => null, 'usia' => 70]);
+
+        // Tanggal lahir diisi: usia dihitung dari tanggal lahir, bukan dari isian.
+        $kirim(['nama' => 'Ada Tanggal', 'tanggal_lahir' => now()->subYears(30)->subDay()->toDateString(), 'usia' => 5])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(30, (int) Pengungsi::where('nama', 'Ada Tanggal')->value('usia'));
+
+        // Dua-duanya kosong ditolak.
+        $kirim(['nama' => 'Kosong', 'tanggal_lahir' => '', 'usia' => ''])->assertSessionHasErrors('usia');
+    }
+
+    public function test_import_excel_pengungsi_usia_saja_tanpa_dobel(): void
+    {
+        $this->impor($this->paket());
+        $lokasi = Lokasi::first();
+        // Format = CSV ekspor pengungsi dari aplikasi LOGEVA Client.
+        $csv = "Nama,Asal,Tanggal Lahir,Nomor KK,Usia,Jenis Kelamin,Kondisi Kesehatan,Kelompok Rentan,Riwayat Penyakit
+"
+            . "Mak Inah,Cikaret,,,72,Perempuan,,,
+"
+            . "Dodi,Cikaret,1995-04-02,,,Laki-laki,,,
+";
+        $unggah = function () use ($lokasi, $csv) {
+            $path = tempnam(sys_get_temp_dir(), 'csv');
+            file_put_contents($path, $csv);
+            $this->actingAs($this->admin)->post(route('pengungsi.import.preview', $lokasi->id),
+                ['file' => new UploadedFile($path, 'LOGEVA_pengungsi.csv', 'text/csv', null, true)])->assertOk();
+            $this->actingAs($this->admin)->post(route('pengungsi.import.confirm', $lokasi->id));
+        };
+
+        $unggah();
+        $inah = Pengungsi::where('nama', 'Mak Inah')->first();
+        $this->assertNotNull($inah, 'baris usia saja diterima');
+        $this->assertNull($inah->tanggal_lahir);
+        $this->assertSame(72, (int) $inah->usia);
+        $this->assertNotNull(Pengungsi::where('nama', 'Dodi')->value('tanggal_lahir'));
+
+        // Impor ulang file yang sama: tidak dobel (nama + usia / nama + tanggal lahir).
+        $unggah();
+        $this->assertSame(1, Pengungsi::where('nama', 'Mak Inah')->count());
+        $this->assertSame(1, Pengungsi::where('nama', 'Dodi')->count());
+
+        // Tanpa tanggal lahir & tanpa usia ditolak.
+        $path = tempnam(sys_get_temp_dir(), 'csv');
+        file_put_contents($path, "Nama,Asal,Tanggal Lahir,Usia,Jenis Kelamin
+Tanpa Umur,X,,,Laki-laki
+");
+        $this->actingAs($this->admin)->post(route('pengungsi.import.preview', $lokasi->id),
+            ['file' => new UploadedFile($path, 'x.csv', 'text/csv', null, true)])
+            ->assertOk()->assertSee('Isi tanggal lahir atau usia');
     }
 }

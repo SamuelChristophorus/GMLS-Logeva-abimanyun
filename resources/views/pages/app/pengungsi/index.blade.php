@@ -254,12 +254,12 @@
         <div>
 
             <label class="block text-sm font-bold text-slate-700 mb-3">
-                Tanggal Lahir
+                Tanggal Lahir <span class="font-medium text-slate-400">(isi tanggal lahir atau usia)</span>
             </label>
 
             <input type="date"
                    name="tanggal_lahir"
-                   required
+                   max="{{ now()->toDateString() }}"
                    class="w-full rounded-[22px]
                           border border-slate-200
                           px-5 py-4
@@ -294,13 +294,13 @@
         <div>
 
             <label class="block text-sm font-bold text-slate-700 mb-3">
-                Usia
+                Usia <span class="font-medium text-slate-400">(tahun; terisi otomatis dari tanggal lahir)</span>
             </label>
 
             <input type="number"
                    name="usia"
-                   required
-                   placeholder="0"
+                   required min="0" max="130"
+                   placeholder="Isi jika tanggal lahir tidak diketahui"
                    class="w-full rounded-[22px]
                           border border-slate-200
                           px-5 py-4
@@ -950,4 +950,6 @@ function searchPengungsi()
 }
 
 </script>
+@include('pages.app.pengungsi._umur-script')
+
 @endsection
