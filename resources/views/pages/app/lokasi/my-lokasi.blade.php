@@ -137,7 +137,7 @@
                 <a href="{{ route('lokasi.show', $lokasi->id) }}"
                    class="block mb-2 group-hover:text-emerald-600 transition-colors">
 
-                    <h3 class="text-xl font-bold text-slate-800 line-clamp-1 leading-tight">
+                    <h3 class="text-xl font-bold text-slate-800 line-clamp-2 leading-tight" title="{{ $lokasi->nama_lokasi }}">
 
                         {{ $lokasi->nama_lokasi }}
 
@@ -191,7 +191,7 @@
 
                     <div class="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
 
-                        {{ \Carbon\Carbon::parse($lokasi->created_at)->timezone('Asia/Jakarta')->format('d M y') }}
+                        {{ \Carbon\Carbon::parse($lokasi->created_at)->timezone('Asia/Jakarta')->translatedFormat('d M y') }}
 
                     </div>
 

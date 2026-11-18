@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
 @push('styles')
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 @endpush
 
 @section('title', 'Lapor Posko Baru')
@@ -215,11 +215,19 @@
                                                         </h4>
 
                                                         <p class="text-xs text-indigo-600 leading-relaxed">
-                                                            Klik map atau drag marker untuk menentukan lokasi posko secara akurat.
+                                                            Saat berada di posko, tekan <b>Gunakan lokasi saya</b>. Atau klik map / geser marker untuk menentukan titik secara manual.
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <!-- GPS PERANGKAT -->
+                                            <button type="button" id="btn-lokasi-saya"
+                                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition disabled:opacity-60 disabled:cursor-wait">
+                                                <i class="fas fa-location-crosshairs"></i>
+                                                <span>Gunakan lokasi saya</span>
+                                            </button>
+                                            <p id="status-lokasi" class="text-xs text-slate-500 min-h-[1rem]" aria-live="polite"></p>
 
                                         </div>
                                     </div>
@@ -607,36 +615,86 @@
         }
     });
 </script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const defaultLat = -6.2;
-    const defaultLng = 106.816666;
+    // Peta dibuka di wilayah Lebak Selatan (sama dengan peta Monitoring Lokasi).
+    // Koordinat TIDAK diisi otomatis: relawan wajib memilih titik sendiri,
+    // supaya posko tidak tersimpan di lokasi bawaan karena lupa mengklik peta.
+    const PUSAT_WILAYAH = [-6.93, 106.12];
+    const inputLat = document.getElementById('latitude');
+    const inputLng = document.getElementById('longitude');
+    const statusLokasi = document.getElementById('status-lokasi');
+    const tombolLokasi = document.getElementById('btn-lokasi-saya');
 
-    const map = L.map('map').setView([defaultLat, defaultLng], 13);
+    const map = L.map('map').setView(PUSAT_WILAYAH, 11);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 19
     }).addTo(map);
 
-    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    let marker = null;
 
-    // set awal
-    document.getElementById('latitude').value = defaultLat;
-    document.getElementById('longitude').value = defaultLng;
+    function pasangTitik(lat, lng, zoom) {
+        if (!marker) {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', () => {
+                const pos = marker.getLatLng();
+                isiKoordinat(pos.lat, pos.lng);
+            });
+        } else {
+            marker.setLatLng([lat, lng]);
+        }
+        isiKoordinat(lat, lng);
+        if (zoom) map.setView([lat, lng], zoom);
+    }
 
-    // klik map
-    map.on('click', function (e) {
-        marker.setLatLng(e.latlng);
-        document.getElementById('latitude').value = e.latlng.lat;
-        document.getElementById('longitude').value = e.latlng.lng;
-    });
+    function isiKoordinat(lat, lng) {
+        inputLat.value = Number(lat).toFixed(6);
+        inputLng.value = Number(lng).toFixed(6);
+    }
 
-    // drag marker
-    marker.on('dragend', function () {
-        const pos = marker.getLatLng();
-        document.getElementById('latitude').value = pos.lat;
-        document.getElementById('longitude').value = pos.lng;
+    // Kembali dari error validasi: tampilkan titik yang sudah dipilih sebelumnya
+    const latLama = parseFloat(inputLat.value), lngLama = parseFloat(inputLng.value);
+    if (!isNaN(latLama) && !isNaN(lngLama)) {
+        pasangTitik(latLama, lngLama, 16);
+    }
+
+    map.on('click', (e) => pasangTitik(e.latlng.lat, e.latlng.lng));
+
+    // Koordinat diketik / ditempel manual -> marker ikut pindah
+    [inputLat, inputLng].forEach(el => el.addEventListener('change', () => {
+        const lat = parseFloat(inputLat.value.replace(',', '.'));
+        const lng = parseFloat(inputLng.value.replace(',', '.'));
+        if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+            pasangTitik(lat, lng, 16);
+        }
+    }));
+
+    // GPS perangkat (butuh https atau localhost, dan izin lokasi dari browser)
+    tombolLokasi.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            statusLokasi.textContent = 'Browser ini tidak mendukung GPS. Pilih titik langsung di peta.';
+            return;
+        }
+        tombolLokasi.disabled = true;
+        statusLokasi.className = 'text-xs text-slate-500 min-h-[1rem]';
+        statusLokasi.textContent = 'Mencari lokasi Anda…';
+
+        navigator.geolocation.getCurrentPosition((pos) => {
+            pasangTitik(pos.coords.latitude, pos.coords.longitude, 16);
+            const akurasi = Math.round(pos.coords.accuracy);
+            statusLokasi.className = 'text-xs text-emerald-600 min-h-[1rem]';
+            statusLokasi.textContent = `Lokasi ditemukan (akurasi ±${akurasi} m). Geser marker jika kurang tepat.`;
+            tombolLokasi.disabled = false;
+        }, (err) => {
+            statusLokasi.className = 'text-xs text-rose-600 min-h-[1rem]';
+            statusLokasi.textContent = err.code === err.PERMISSION_DENIED
+                ? 'Izin lokasi ditolak. Izinkan akses lokasi di browser, atau pilih titik di peta.'
+                : 'Lokasi tidak dapat ditemukan. Coba lagi di tempat terbuka, atau pilih titik di peta.';
+            tombolLokasi.disabled = false;
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     });
 </script>
 @endsection

@@ -99,6 +99,9 @@
     <!-- Alpine.js (Lightweight interactive logic) -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 
+    {{-- Semua input tanggal tampil dd/mm/yyyy berbahasa Indonesia --}}
+    @include('includes.tanggal-id')
+
     @yield('scripts')
     @stack('scripts')
 </body>

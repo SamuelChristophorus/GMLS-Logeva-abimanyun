@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Carbon\Carbon;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nama bulan/hari & "x jam yang lalu" selalu berbahasa Indonesia,
+        // tidak bergantung APP_LOCALE di .env (pesan validasi tetap mengikuti APP_LOCALE).
+        Carbon::setLocale('id');
+
         // Batas kirim form donasi (publik, tanpa login) supaya tidak bisa dibanjiri donasi palsu:
         // per alamat IP 5x / 10 menit (termasuk percobaan yang salah isi) & 10x / hari, dan total semua pengirim 300x / hari.
         RateLimiter::for('donasi', function (Request $request) {

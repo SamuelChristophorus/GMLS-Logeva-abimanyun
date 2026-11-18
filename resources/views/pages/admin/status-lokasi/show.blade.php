@@ -76,14 +76,14 @@
                     <!-- Tanggal Dibuat -->
                     <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tanggal Dibuat</p>
-                        <p class="text-sm font-bold text-slate-700">{{ $status->created_at->format('d M Y') }}</p>
+                        <p class="text-sm font-bold text-slate-700">{{ $status->created_at->translatedFormat('d M Y') }}</p>
                         <p class="text-xs text-slate-500 font-medium">{{ $status->created_at->format('H:i') }} WIB</p>
                     </div>
 
                     <!-- Terakhir Diupdate -->
                     <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Terakhir Diperbarui</p>
-                        <p class="text-sm font-bold text-slate-700">{{ $status->updated_at->format('d M Y') }}</p>
+                        <p class="text-sm font-bold text-slate-700">{{ $status->updated_at->translatedFormat('d M Y') }}</p>
                         <p class="text-xs text-slate-500 font-medium">{{ $status->updated_at->format('H:i') }} WIB</p>
                     </div>
 

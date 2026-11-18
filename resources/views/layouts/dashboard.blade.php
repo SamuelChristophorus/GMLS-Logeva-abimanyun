@@ -58,6 +58,9 @@
     {{-- Toast notifikasi (Swal::toast dari controller) --}}
     @include('sweetalert::alert')
 
+    {{-- Semua input tanggal tampil dd/mm/yyyy berbahasa Indonesia --}}
+    @include('includes.tanggal-id')
+
     @yield('scripts')
     @stack('scripts')
 </body>

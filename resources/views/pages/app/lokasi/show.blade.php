@@ -108,6 +108,29 @@
 
         <div class="grid grid-cols-2 gap-4 mt-8">
 
+            {{-- Luas & kapasitas selalu tampil (stats bar di bawah hanya muncul saat siaga) --}}
+            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+                <p class="text-sm text-slate-400">
+                    <i class="fas fa-ruler-combined mr-1"></i> Luas Posko
+                </p>
+                <p class="font-semibold text-white mt-1">
+                    @if ($lokasi->luas_lokasi)
+                        {{ $angka($lokasi->luas_lokasi) }} <span class="text-sm font-normal text-slate-400">m²</span>
+                    @else
+                        <span class="text-slate-400 font-normal">Belum diisi</span>
+                    @endif
+                </p>
+            </div>
+
+            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+                <p class="text-sm text-slate-400">
+                    <i class="fas fa-people-roof mr-1"></i> Kapasitas
+                </p>
+                <p class="font-semibold text-white mt-1">
+                    {{ $angka($lokasi->kapasitas_pengungsi) }} <span class="text-sm font-normal text-slate-400">orang</span>
+                </p>
+            </div>
+
             <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
 
                 <p class="text-sm text-slate-400">
@@ -476,7 +499,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="text-sm font-bold text-slate-800">{{ $stCfg['label'] }}</span>
                             <time class="text-xs text-slate-400">
-                                {{ \Carbon\Carbon::parse($st->created_at)->timezone('Asia/Jakarta')->format('d M Y · H:i') }}
+                                {{ \Carbon\Carbon::parse($st->created_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y · H:i') }}
                             </time>
                         </div>
                         @if($st->catatan)
