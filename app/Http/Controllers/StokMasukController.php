@@ -79,6 +79,10 @@ class StokMasukController extends Controller
 {
     $lokasi = Lokasi::findOrFail($lokasi_id);
 
+    // Logistik posko hanya untuk ADMIN & RELAWAN PENANGGUNG JAWAB posko itu
+    // (relawan yang belum ditugaskan / posko lain: ditolak).
+    abort_unless($lokasi->bisaDikelolaOleh(auth()->user()), 403, 'Anda tidak bertugas di posko ini.');
+
     // Hitungan stok & status SAMA dengan panel detail posko:
     // kebutuhan harian (Master Logistik) x jumlah pengungsi tercatat
     [

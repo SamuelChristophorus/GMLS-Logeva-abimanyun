@@ -22,6 +22,7 @@ class PengungsiController extends Controller
     public function index($lokasi)
     {
         $lokasi = Lokasi::findOrFail($lokasi);
+        $this->pastikanBoleh($lokasi);
 
         $pengungsis = Pengungsi::where(
             'lokasi_id',
@@ -42,6 +43,8 @@ class PengungsiController extends Controller
 
     public function store(Request $request, $lokasi)
     {
+        $this->pastikanBoleh(Lokasi::findOrFail($lokasi));
+
         $request->validate([
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'nama' => 'required',
@@ -98,6 +101,7 @@ class PengungsiController extends Controller
     {
         // Termasuk yang sudah keluar posko (dibuka dari daftar "Sudah keluar posko").
         $pengungsi = Pengungsi::semuaKeberadaan()->findOrFail($id);
+        $this->pastikanBoleh($pengungsi->lokasi);
 
         return view(
             'pages.app.pengungsi.show',
@@ -114,6 +118,7 @@ class PengungsiController extends Controller
     public function edit($id)
     {
         $pengungsi = Pengungsi::findOrFail($id);
+        $this->pastikanBoleh($pengungsi->lokasi);
 
         return view(
             'pages.app.pengungsi.edit',
@@ -130,6 +135,7 @@ class PengungsiController extends Controller
     public function update(Request $request, $id)
     {
         $pengungsi = Pengungsi::findOrFail($id);
+        $this->pastikanBoleh($pengungsi->lokasi);
 
         $request->validate([
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
@@ -183,6 +189,7 @@ class PengungsiController extends Controller
     public function destroy($id)
     {
         $pengungsi = Pengungsi::findOrFail($id);
+        $this->pastikanBoleh($pengungsi->lokasi);
 
         $lokasi = $pengungsi->lokasi_id;
 
@@ -216,6 +223,8 @@ class PengungsiController extends Controller
 
     public function export($lokasi)
     {
+        $this->pastikanBoleh(Lokasi::findOrFail($lokasi));
+
         return Excel::download(
             new PengungsiExport($lokasi),
             'data_pengungsi.xlsx'
@@ -240,5 +249,15 @@ class PengungsiController extends Controller
             return \App\Support\KondisiKesehatan::gabung($request->kondisi_pilihan, $request->kondisi_keterangan);
         }
         return \App\Support\KondisiKesehatan::rapikan($request->kondisi_kesehatan) ?: 'Sehat';
+    }
+
+    /**
+     * Data pengungsi (data pribadi) hanya untuk ADMIN dan RELAWAN PENANGGUNG
+     * JAWAB posko itu. Relawan yang belum ditugaskan / posko lain: ditolak.
+     */
+    private function pastikanBoleh(?Lokasi $lokasi): void
+    {
+        abort_unless($lokasi && $lokasi->bisaDikelolaOleh(auth()->user()), 403,
+            'Anda tidak bertugas di posko ini.');
     }
 }

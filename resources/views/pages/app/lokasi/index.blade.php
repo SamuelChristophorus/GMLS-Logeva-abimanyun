@@ -191,12 +191,14 @@
                         </div>
 
                         {{-- Aksi --}}
-                        <div class="grid {{ auth()->check() && $approved ? 'grid-cols-3' : 'grid-cols-1' }} gap-2">
+                        {{-- Pengungsi & logistik hanya untuk admin / relawan penanggung jawab posko ini --}}
+                        @php $kelola = $approved && $lokasi->bisaDikelolaOleh(auth()->user()); @endphp
+                        <div class="grid {{ $kelola ? 'grid-cols-3' : 'grid-cols-1' }} gap-2">
                             <a href="{{ route('lokasi.show', $lokasi->id) }}"
                                class="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition">
                                 <i class="fas fa-eye text-xs"></i> Detail
                             </a>
-                            @if (auth()->check() && $approved)
+                            @if ($kelola)
                                 <a href="{{ route('pengungsi.index', $lokasi->id) }}"
                                    class="inline-flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold py-2.5 rounded-xl transition">
                                     <i class="fas fa-users text-xs"></i> Pengungsi

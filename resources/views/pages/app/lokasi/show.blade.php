@@ -158,6 +158,8 @@
 
         </div>
 
+        {{-- Hanya admin / relawan penanggung jawab posko ini --}}
+        @if ($lokasi->bisaDikelolaOleh(auth()->user()))
         <div class="flex flex-wrap gap-3 mt-8">
 
             <a href="{{ route('pengungsi.index', $lokasi->id) }}"
@@ -177,6 +179,7 @@
             </a>
 
         </div>
+        @endif
 
     </div>
 

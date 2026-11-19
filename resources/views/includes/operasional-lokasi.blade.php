@@ -205,8 +205,9 @@
             'belum'  => ['Kebutuhan belum bisa dihitung',  'bg-slate-100 text-slate-700',    'fa-question-circle'],
         ][$bantuan['tingkat']] ?? null;
 
-        // Tugas & data medis hanya untuk petugas (admin / relawan); nama pengungsi hanya untuk pengelola posko
-        $isPetugas = $isAdmin || (auth()->user()?->hasRole('relawan') ?? false);
+        // Tugas & daftar perhatian medis (berisi nama pengungsi) hanya untuk
+        // admin & relawan penanggung jawab posko ini, bukan relawan lain.
+        $isPetugas = $bisaKelola;
         $medis     = $operasional['perhatian_medis'];
         $prioritasTugas = [
             'tinggi' => ['Prioritas tinggi', 'bg-red-100 text-red-700',     'bg-red-500'],

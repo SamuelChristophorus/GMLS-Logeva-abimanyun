@@ -25,7 +25,14 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-3 mt-2 md:mt-0">
+        <div class="flex flex-wrap items-center gap-3 mt-2 md:mt-0">
+            {{-- Admin melihat & mengelola pengungsi dan logistik posko ini --}}
+            <a href="{{ route('pengungsi.index', $lokasi->id) }}" class="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-5 py-3 rounded-xl shadow-sm border border-emerald-200 transition-all">
+                <i class="fas fa-users text-sm"></i> Pengungsi ({{ $lokasi->pengungsi()->count() }})
+            </a>
+            <a href="{{ route('logistik.index', $lokasi->id) }}" class="inline-flex items-center justify-center gap-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold px-5 py-3 rounded-xl shadow-sm border border-sky-200 transition-all">
+                <i class="fas fa-boxes text-sm"></i> Logistik
+            </a>
             <a href="{{route('admin.lokasi.edit', $lokasi->id)}}" class="inline-flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-600 font-bold px-5 py-3 rounded-xl shadow-sm border border-amber-200 transition-all">
                 <i class="fas fa-edit text-sm"></i> Edit
             </a>
