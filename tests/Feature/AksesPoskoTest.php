@@ -90,6 +90,54 @@ class AksesPoskoTest extends TestCase
         $this->assertSame(1, Pengungsi::count());
     }
 
+    /**
+     * Celah lain yang bisa dicoba lewat URL / kiriman form langsung (tanpa tombol):
+     * import pengungsi, barang masuk, barang keluar. Semuanya harus ditolak & tidak mengubah data.
+     */
+    public function test_relawan_lain_tidak_bisa_lewat_url_langsung(): void
+    {
+        $beras = \App\Models\Logistik::first();
+        foreach ([$this->belum, $this->lain] as $u) {
+            $this->actingAs($u)->get(route('pengungsi.import.template', $this->posko->id))->assertForbidden();
+            $this->actingAs($u)->post(route('pengungsi.import.preview', $this->posko->id))->assertForbidden();
+            $this->actingAs($u)->post(route('pengungsi.import.confirm', $this->posko->id))->assertForbidden();
+
+            $this->actingAs($u)->get(route('logistik.keluar', $this->posko->id))->assertForbidden();
+            $this->actingAs($u)->post(route('stok-masuk.store'), [
+                'lokasi_id' => $this->posko->id, 'logistik_id' => $beras->id, 'jumlah_masuk' => 50,
+                'sumber_bantuan' => 'Penyusup', 'tanggal_masuk' => now()->toDateString(),
+            ])->assertForbidden();
+            $this->actingAs($u)->post(route('logistik.keluar.store', $this->posko->id), [
+                'logistik_id' => $beras->id, 'jumlah_keluar' => 1, 'tujuan' => 'dibagikan',
+                'tanggal_keluar' => now()->toDateString(),
+            ])->assertForbidden();
+        }
+        $this->assertSame(0, \App\Models\StokMasuk::count());
+        $this->assertSame(0, \App\Models\StokKeluar::count());
+        $this->assertSame(1, Pengungsi::count());
+    }
+
+    public function test_relawan_lain_mendapat_penjelasan_bukan_halaman_kosong(): void
+    {
+        // Di detail posko: keterangan siapa penanggung jawabnya
+        $this->actingAs($this->lain)->get(route('lokasi.show', $this->posko->id))
+            ->assertOk()->assertSee('bukan penanggung jawab', false)->assertSee('Penanggung');
+
+        // Halaman 403 berbahasa Indonesia dengan jalan kembali
+        $this->actingAs($this->lain)->get(route('pengungsi.index', $this->posko->id))
+            ->assertForbidden()
+            ->assertSee('Akses ditolak')
+            ->assertSee('Anda tidak bertugas di posko ini.')
+            ->assertSee(route('lokasi.index'));
+
+        // 403 di luar posko (relawan membuka panel admin): tanpa penjelasan posko, tanpa pesan bahasa Inggris
+        $this->actingAs($this->lain)->get(route('admin.dashboard'))
+            ->assertForbidden()
+            ->assertSee('Anda tidak berhak membuka halaman ini.')
+            ->assertDontSee('penanggung jawab posko tersebut')
+            ->assertDontSee('User does not have');
+    }
+
     public function test_penanggung_jawab_dan_admin_bisa_kelola(): void
     {
         foreach ([$this->pj, $this->admin] as $u) {

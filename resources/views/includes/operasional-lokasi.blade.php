@@ -142,13 +142,16 @@
     @endif
 </div>
 
-{{-- Relawan yang BUKAN penanggung jawab: jelaskan kenapa tidak ada tombol pengajuan --}}
-@if (! $bisaKelola && auth()->user()?->hasRole('relawan') && $lokasi->isApproved())
-    <p class="-mt-4 mb-6 flex items-center gap-2 text-xs text-slate-500">
-        <i class="fas fa-info-circle text-slate-400"></i>
-        Pengajuan mulai / tutup operasi posko ini hanya dapat dilakukan oleh relawan penanggung jawab
-        <b class="text-slate-700">{{ optional(optional($lokasi->relawan)->user)->name ?? '-' }}</b>.
-    </p>
+{{-- Relawan yang BUKAN penanggung jawab: jelaskan kenapa tidak ada tombol kelola / pengajuan --}}
+@if (! $bisaKelola && auth()->user()?->hasRole('relawan'))
+    <div class="-mt-2 mb-6 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <i class="fas fa-lock text-slate-400 mt-0.5"></i>
+        <p>
+            Anda <b>bukan penanggung jawab</b> posko ini. Kelola pengungsi, monitoring logistik, dan pengajuan
+            mulai / tutup operasi hanya dapat dilakukan oleh relawan penanggung jawab
+            <b class="text-slate-800">{{ optional(optional($lokasi->relawan)->user)->name ?? '-' }}</b> dan admin.
+        </p>
+    </div>
 @endif
 
 {{-- ================= PERMINTAAN DARI RELAWAN (untuk admin) ================= --}}

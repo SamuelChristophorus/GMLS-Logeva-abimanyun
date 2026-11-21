@@ -274,7 +274,8 @@
             </div>
             @endif
 
-            @if ($lokasi->statusLokasi->last()?->status === 'approved')
+            {{-- Hanya admin / relawan penanggung jawab posko ini --}}
+            @if ($lokasi->statusLokasi->last()?->status === 'approved' && $lokasi->bisaDikelolaOleh(auth()->user()))
             <!-- BUTTON PENGUNGSI -->
             <div class="px-5 pb-5">
 

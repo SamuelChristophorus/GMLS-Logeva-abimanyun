@@ -56,8 +56,10 @@ class PengungsiImportController extends Controller
         'riwayat_penyakit'  => 'Riwayat Penyakit',
     ];
 
-    public function template(Lokasi $lokasi)
+    public function template(Request $request, Lokasi $lokasi)
     {
+        $this->pastikanBolehKelola($request, $lokasi);
+
         return Excel::download(new ImportTemplateExport(
             'Data Pengungsi',
             [
