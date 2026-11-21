@@ -37,15 +37,19 @@ class AksesPoskoTest extends TestCase
         return $u;
     }
 
-    private function poskoUntuk(User $u, string $nama): Lokasi
+    private function poskoUntuk(User $u, string $nama, bool $disetujui = true): Lokasi
     {
         $relawan = Relawan::firstOrCreate(['user_id' => $u->id], ['avatar' => 'assets/default/avatar.png']);
-        return Lokasi::create([
+        $l = Lokasi::create([
             'desa_id' => Desa::first()->id, 'relawan_id' => $relawan->id, 'nama_lokasi' => $nama,
             'alamat_lokasi' => 'Jl. 1', 'luas_lokasi' => 300, 'kapasitas_pengungsi' => 100,
             'gambar_lokasi' => 'x.jpg', 'latitude' => '-6.9', 'longitude' => '106.1',
-            'status' => 'approved', 'status_operasional' => Lokasi::OPS_BEROPERASI, 'mulai_beroperasi_at' => now(),
+            'status_operasional' => Lokasi::OPS_BEROPERASI, 'mulai_beroperasi_at' => now(),
         ]);
+        if ($disetujui) {
+            \App\Models\StatusLokasi::create(['lokasi_id' => $l->id, 'status' => 'approved', 'catatan' => 'Disetujui']);
+        }
+        return $l;
     }
 
     protected function setUp(): void
@@ -105,5 +109,19 @@ class AksesPoskoTest extends TestCase
             ->assertOk()
             ->assertSee(route('pengungsi.index', $this->posko->id))
             ->assertSee(route('logistik.index', $this->posko->id));
+    }
+
+    public function test_relawan_pelapor_posko_belum_disetujui_tidak_bisa_kelola(): void
+    {
+        // Relawan yang BELUM ditugaskan melaporkan posko baru: laporannya
+        // masih menunggu persetujuan admin, jadi datanya belum boleh dikelola.
+        $laporan = $this->poskoUntuk($this->belum, 'Posko Usulan', false);
+        $this->actingAs($this->belum)->get(route('pengungsi.index', $laporan->id))->assertForbidden();
+        $this->actingAs($this->belum)->get(route('logistik.index', $laporan->id))->assertForbidden();
+
+        \App\Models\StatusLokasi::create(['lokasi_id' => $laporan->id, 'status' => 'approved', 'catatan' => 'Disetujui']);
+        $this->actingAs($this->belum)->get(route('pengungsi.index', $laporan->id))->assertOk();
+        // Tetap tidak bisa posko lain.
+        $this->actingAs($this->belum)->get(route('pengungsi.index', $this->posko->id))->assertForbidden();
     }
 }

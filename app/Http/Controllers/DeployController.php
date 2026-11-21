@@ -49,6 +49,18 @@ class DeployController extends Controller
                 . 'di ' . str_replace(base_path(), '', $e->getFile()) . ':' . $e->getLine() . "\n";
         }
 
+        // Hosting bersama sering menyimpan file PHP lama di OPcache: setelah
+        // upload, kode baru belum dipakai. "bersihkan" ikut mengosongkannya.
+        if ($aksi === 'bersihkan') {
+            $output .= function_exists('opcache_reset') && @opcache_reset()
+                ? "
+OPcache dikosongkan: file PHP baru langsung dipakai.
+"
+                : "
+OPcache tidak aktif / tidak bisa dikosongkan (abaikan).
+";
+        }
+
         return response(
             "$ php artisan $perintah " . implode(' ', array_keys($opsi)) . "\n\n"
             . ($output !== '' ? $output : "(tidak ada output)\n")

@@ -218,7 +218,11 @@ class Lokasi extends Model
             return true;
         }
 
-        return $this->relawan && (int) $this->relawan->user_id === (int) $user->id;
+        // Relawan: hanya penanggung jawab posko ini, dan hanya setelah laporan
+        // posko DISETUJUI admin (laporan menunggu/ditolak belum boleh dikelola).
+        return $this->relawan
+            && (int) $this->relawan->user_id === (int) $user->id
+            && $this->isApproved();
     }
 
     /** Label & warna untuk ditampilkan di tampilan. */

@@ -61,6 +61,7 @@ class DonasiTest extends TestCase
             'gambar_lokasi' => 'x.jpg', 'latitude' => '-6.98', 'longitude' => '106.30',
             'status_operasional' => Lokasi::OPS_BEROPERASI, 'mulai_beroperasi_at' => now(),
         ]);
+        \App\Models\StatusLokasi::create(['lokasi_id' => $this->posko->id, 'status' => 'approved', 'catatan' => 'Disetujui']);
 
         $this->beras = Logistik::where('nama_item', 'Beras')->firstOrFail();
         $this->air   = Logistik::where('nama_item', 'Air Mineral')->firstOrFail();
