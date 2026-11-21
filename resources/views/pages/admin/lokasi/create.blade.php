@@ -82,8 +82,9 @@
                                     class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none @error('relawan_id') border-rose-500 focus:ring-rose-500/20 focus:border-rose-500 @enderror">
                                     <option value="" disabled selected>-- Hubungkan Relawan Aktif --</option>
                                     @foreach ($relawans as $relawan)
-                                        <option value="{{$relawan->id}}" @if (old('relawan_id') == $relawan->id) selected @endif>
-                                            {{$relawan->user->name}} ({{$relawan->user->email}})
+                                        @php $sudah = $relawan->lokasi()->value('nama_lokasi'); @endphp
+                                        <option value="{{$relawan->id}}" @if (old('relawan_id') == $relawan->id) selected @endif @disabled($sudah)>
+                                            {{$relawan->user->name}} ({{$relawan->user->email}}){{ $sudah ? ' — sudah bertugas di ' . $sudah : '' }}
                                         </option>
                                     @endforeach
                                 </select>

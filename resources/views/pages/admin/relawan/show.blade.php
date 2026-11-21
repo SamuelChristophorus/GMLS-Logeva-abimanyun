@@ -89,6 +89,23 @@
 
                     <div class="flex flex-col sm:flex-row p-4 hover:bg-white transition-colors rounded-xl">
                         <div class="w-full sm:w-1/3 md:w-1/4 text-sm font-bold text-slate-500 mb-1 sm:mb-0 flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-slate-300 w-4 text-center"></i> Posko Tugas
+                        </div>
+                        <div class="w-full sm:w-2/3 md:w-3/4 text-sm text-slate-800">
+                            @php $daftarPosko = $relawan->lokasi; @endphp
+                            @forelse ($daftarPosko as $p)
+                                <a href="{{ route('admin.lokasi.show', $p->id) }}" class="font-bold text-blue-600 hover:underline">{{ $p->nama_lokasi }}</a>@if (! $loop->last), @endif
+                            @empty
+                                <span class="text-slate-500">Belum ditugaskan</span>
+                            @endforelse
+                            @if ($daftarPosko->count() > 1)
+                                <span class="block text-xs font-bold text-rose-600 mt-1">Satu relawan seharusnya hanya di satu posko: atur lewat Edit Relawan.</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row p-4 hover:bg-white transition-colors rounded-xl">
+                        <div class="w-full sm:w-1/3 md:w-1/4 text-sm font-bold text-slate-500 mb-1 sm:mb-0 flex items-center gap-2">
                             <i class="fas fa-user-shield text-slate-300 w-4 text-center"></i> Role Sistem
                         </div>
                         <div class="w-full sm:w-2/3 md:w-3/4 text-sm text-slate-800">

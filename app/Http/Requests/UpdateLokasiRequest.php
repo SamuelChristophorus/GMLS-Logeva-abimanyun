@@ -17,6 +17,7 @@ class UpdateLokasiRequest extends FormRequest
     {
         return [
             'desa_id' => 'required|exists:desas,id',
+            // Posko wajib punya satu relawan penanggung jawab.
             'relawan_id' => 'required|exists:relawans,id',
             'nama_lokasi'=> 'required',
             'alamat_lokasi'=> 'required',

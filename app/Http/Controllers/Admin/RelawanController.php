@@ -67,7 +67,12 @@ class RelawanController extends Controller
     public function edit(string $id)
     {
         $relawan = $this->relawanRepository->getRelawanById($id);
-        return view('pages.admin.relawan.edit', compact('relawan'));
+        // Pilihan posko tugas: semua posko + penanggung jawabnya sekarang.
+        $poskos = \App\Models\Lokasi::with(['desa', 'relawan.user', 'latestStatusView'])
+            ->orderBy('nama_lokasi')->get();
+        $poskoTugas = $relawan->poskoTugas();
+        $jumlahPosko = $relawan->lokasi()->count();
+        return view('pages.admin.relawan.edit', compact('relawan', 'poskos', 'poskoTugas', 'jumlahPosko'));
     }
 
     public function update(UpdateRelawanRequest $request, string $id)
@@ -81,13 +86,34 @@ class RelawanController extends Controller
 
         $this->relawanRepository->updateRelawan($id, $data);
 
-        Swal::toast('Relawan Berhasil Diubah', 'success')->timerProgressBar();
+        // Penugasan posko: satu relawan hanya di satu posko pilihan admin.
+        // Relawan yang sudah memegang posko tidak bisa dijadikan "belum
+        // ditugaskan" (posko wajib punya penanggung jawab): pindahkan saja.
+        $pesan = 'Relawan Berhasil Diubah';
+        $relawan = $this->relawanRepository->getRelawanById($id);
+        if ($request->filled('lokasi_id')) {
+            $posko = \App\Models\Lokasi::findOrFail($request->lokasi_id);
+            $hasil = $relawan->tugaskanKe($posko);
+            $pesan = \App\Models\Relawan::pesanPenugasan($relawan->user->name, $posko, $hasil);
+        }
+
+        Swal::toast($pesan, 'success')->timerProgressBar();
 
         return redirect()->route('admin.relawan.index');
     }
 
     public function destroy(string $id)
     {
+        // Posko wajib punya penanggung jawab: relawan yang masih memegang posko
+        // tidak bisa dihapus sebelum posko itu diberi relawan lain.
+        $relawan = $this->relawanRepository->getRelawanById($id);
+        $posko = $relawan?->lokasi()->pluck('nama_lokasi')->all() ?? [];
+        if ($posko) {
+            Swal::toast('Relawan masih penanggung jawab ' . implode(', ', $posko)
+                . '. Ganti penanggung jawab posko itu dulu (Edit Posko), baru hapus relawan.', 'error')->timerProgressBar();
+            return redirect()->route('admin.relawan.index');
+        }
+
         $this->relawanRepository->deleteRelawan($id);
 
         Swal::toast('Relawan Berhasil Dihapus', 'success')->timerProgressBar();

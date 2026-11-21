@@ -13,7 +13,16 @@ class StoreLokasiRequest extends FormRequest
         return [
             'desa_id' => 'required|exists:desas,id',
             // Relawan: diisi otomatis di controller dari akun yang login. Admin: wajib memilih.
-            'relawan_id' => auth()->user()->hasRole('admin') ? 'required|exists:relawans,id' : 'nullable',
+            // Admin: posko baru wajib diberi relawan yang BELUM memegang posko
+            // (satu relawan = satu posko).
+            'relawan_id' => auth()->user()->hasRole('admin')
+                ? ['required', 'exists:relawans,id', function ($attr, $value, $fail) {
+                    $posko = \App\Models\Lokasi::where('relawan_id', $value)->value('nama_lokasi');
+                    if ($posko) {
+                        $fail("Relawan ini sudah bertugas di {$posko}. Pilih relawan yang belum ditugaskan.");
+                    }
+                }]
+                : 'nullable',
             'nama_lokasi'=> 'required',
             'alamat_lokasi'=> 'required',
             'luas_lokasi'=> 'required',

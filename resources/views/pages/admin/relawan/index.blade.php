@@ -82,6 +82,20 @@
                                             Akun dibuat {{ \App\Support\LamaWaktu::sejak($relawan->created_at) }}
                                         </span>
                                     </div>
+                                    {{-- Posko tugas (satu relawan = satu posko) --}}
+                                    @php $daftarPosko = $relawan->lokasi; @endphp
+                                    <div class="flex items-center gap-1.5 mt-1 {{ $daftarPosko->count() > 1 ? 'text-rose-600' : 'text-slate-500' }}">
+                                        <i class="fas fa-map-marker-alt text-[10px] opacity-70"></i>
+                                        <span class="text-xs font-medium">
+                                            @if ($daftarPosko->isEmpty())
+                                                Belum ditugaskan
+                                            @elseif ($daftarPosko->count() === 1)
+                                                Posko: {{ $daftarPosko->first()->nama_lokasi }}
+                                            @else
+                                                {{ $daftarPosko->count() }} posko — atur lewat Edit
+                                            @endif
+                                        </span>
+                                    </div>
                                 </div>
                             </td>
 

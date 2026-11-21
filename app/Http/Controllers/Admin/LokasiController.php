@@ -112,6 +112,16 @@ class LokasiController extends Controller
             $data['gambar_lokasi'] = Upload::simpan($request->file('gambar_lokasi'), 'assets/lokasi/gambar');
         }
 
+        // Ganti penanggung jawab: relawan baru bertukar posko dengan yang lama
+        // (posko wajib punya relawan, satu relawan = satu posko).
+        $pesanTukar = null;
+        $lama = \App\Models\Lokasi::findOrFail($id);
+        if ((int) $lama->relawan_id !== (int) $data['relawan_id']) {
+            $baru = \App\Models\Relawan::findOrFail($data['relawan_id']);
+            $hasil = $baru->tugaskanKe($lama);
+            $pesanTukar = \App\Models\Relawan::pesanPenugasan($baru->user?->name ?? 'Relawan', $lama, $hasil);
+        }
+        unset($data['relawan_id']);
         $this->lokasiRepository->updateLokasi($id, $data);
 
         $sphereData = $request->only([
@@ -129,7 +139,7 @@ class LokasiController extends Controller
             $this->sphereLokasiRepository->updateSphereLokasiByLokasi($id, $sphereData);
         }
 
-        Swal::toast('Desa Lokasi Berhasil Diubah', 'success')->timerProgressBar();
+        Swal::toast($pesanTukar ?? 'Desa Lokasi Berhasil Diubah', 'success')->timerProgressBar();
 
         return redirect()->route('admin.lokasi.index');
     }

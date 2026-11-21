@@ -90,6 +90,7 @@
                     </div>
                     <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Penanggung Jawab</p>
+                        @if ($lokasi->relawan && $lokasi->relawan->user)
                         <div class="flex items-center gap-2 mt-1">
                             <img src="{{asset('storage/'. $lokasi->relawan->avatar)}}" alt="Avatar" class="w-6 h-6 rounded-full object-cover border border-slate-200">
                             <div>
@@ -97,6 +98,9 @@
                                 <p class="text-[10px] text-slate-500 font-medium leading-tight">{{$lokasi->relawan->user->email}}</p>
                             </div>
                         </div>
+                        @else
+                        <p class="text-sm font-bold text-amber-600 mt-1">Belum ada <span class="font-medium text-slate-500">(atur lewat Relawan → Edit → Posko Tugas)</span></p>
+                        @endif
                     </div>
                     <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100">
                         <div class="flex items-start justify-between">

@@ -9,7 +9,7 @@ use App\Models\User;
 class RelawanRepository implements RelawanRepositoryInterface
 {
     public function getAllRelawans() {
-        return Relawan::all();
+        return Relawan::with(['user', 'lokasi'])->get();
     }
 
     public function getRelawanById(int $id) {

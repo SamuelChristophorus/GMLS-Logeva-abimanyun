@@ -116,6 +116,49 @@
                         </div>
                     </div>
 
+                    <!-- Penugasan posko: satu relawan = satu posko pilihan admin -->
+                    <div class="md:col-span-2 mt-4 mb-2">
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-red-500"></i> Posko Tugas
+                        </h4>
+                    </div>
+
+                    <div class="space-y-2 md:col-span-2">
+                        <label for="lokasi_id" class="block text-sm font-bold text-slate-700">Bertugas di posko</label>
+                        @php $dipilih = (string) old('lokasi_id', $poskoTugas?->id); @endphp
+                        <select id="lokasi_id" name="lokasi_id"
+                            class="w-full max-w-xl px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all @error('lokasi_id') border-rose-500 @enderror">
+                            @if (! $poskoTugas)
+                                <option value="" @selected($dipilih === '')>— Belum ditugaskan —</option>
+                            @endif
+                            @foreach ($poskos as $p)
+                                @php
+                                    $pj = optional(optional($p->relawan)->user)->name;
+                                    $status = optional($p->latestStatusView)->status;
+                                @endphp
+                                <option value="{{ $p->id }}" @selected($dipilih === (string) $p->id)>
+                                    {{ $p->nama_lokasi }}{{ $p->desa ? ' · ' . $p->desa->nama_desa : '' }}
+                                    @if ($status !== 'approved') ({{ $status === 'rejected' ? 'ditolak' : 'belum disetujui' }}) @endif
+                                    @if ($pj && (int) $p->relawan_id !== (int) $relawan->id) — PJ sekarang: {{ $pj }} @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        @if ($jumlahPosko > 1)
+                            <p class="text-xs font-bold text-rose-600 mt-1.5 flex items-center gap-1.5 border border-rose-200 bg-rose-50 p-2 rounded-lg max-w-xl">
+                                <i class="fas fa-exclamation-triangle"></i> Relawan ini saat ini memegang {{ $jumlahPosko }} posko (data lama). Satu relawan hanya untuk satu posko: ganti penanggung jawab posko lainnya lewat Edit Posko.
+                            </p>
+                        @endif
+                        <p class="text-xs font-medium text-slate-500 mt-1.5 flex items-start gap-1.5 border border-slate-200 bg-slate-50 p-2 rounded-lg max-w-xl">
+                            <i class="fas fa-info-circle mt-0.5"></i>
+                            <span>Satu posko = satu relawan penanggung jawab, satu relawan = satu posko. Relawan menjadi penanggung jawab posko yang dipilih dan bisa mengelola pengungsi &amp; logistiknya (setelah posko disetujui). Penanggung jawab lama posko itu <b>bertukar</b> ke posko asal relawan ini; kalau relawan ini belum punya posko, penanggung jawab lama menjadi belum ditugaskan. Relawan lain hanya bisa melihat detail posko.</span>
+                        </p>
+                        @error('lokasi_id')
+                            <p class="mt-1.5 text-xs font-bold text-rose-500 flex items-center gap-1">
+                                <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
                     <div class="md:col-span-2 mt-4 mb-2">
                         <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
                             <i class="fas fa-shield-alt text-amber-500"></i> Keamanan Akun
