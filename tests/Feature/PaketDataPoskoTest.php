@@ -835,4 +835,38 @@ Tanpa Umur,X,,,Laki-laki
         $this->assertSame('Demam', KondisiKesehatan::rapikan('Demam'));
         $this->assertNull(KondisiKesehatan::pisah('Demam')['pilihan']);
     }
+
+    public function test_koreksi_dan_hapus_catatan_logistik_dari_aplikasi(): void
+    {
+        $this->impor($this->paket());
+        $this->assertSame(38, $this->stokBeras()); // 50 masuk - 12 keluar
+
+        // Paket berikutnya: barang masuk dikoreksi 50 -> 30 (diubah_pada lebih baru).
+        $koreksi = ['barang_masuk.csv' => [0 => ['jumlah_masuk' => '30', 'sumber_bantuan' => 'BPBD Lebak',
+            'diubah_pada' => '2026-10-22 08:00:00', 'dihapus_pada' => '']]];
+        $html = $this->actingAs($this->admin)->post(route('admin.paket.preview'), ['file' => $this->paket($koreksi)])
+            ->assertOk()->getContent();
+        $this->assertStringContainsString('Dikoreksi di aplikasi', $html);
+        $this->impor($this->paket($koreksi));
+        $this->assertSame(18, $this->stokBeras(), 'stok dihitung ulang: 30 - 12');
+        $this->assertSame(1, StokMasuk::where('kode', self::MASUK)->count(), 'tidak dobel');
+        $this->assertSame(30, (int) StokMasuk::where('kode', self::MASUK)->value('jumlah_masuk'));
+
+        // Versi yang sama diimpor lagi: tidak berubah.
+        $this->impor($this->paket($koreksi));
+        $this->assertSame(18, $this->stokBeras());
+
+        // Barang keluar dihapus di aplikasi -> stok naik lagi.
+        $hapus = $koreksi + ['barang_keluar.csv' => [0 => ['diubah_pada' => '2026-10-22 09:00:00',
+            'dihapus_pada' => '2026-10-22 09:00:00']]];
+        $this->impor($this->paket($hapus));
+        $this->assertSame(30, $this->stokBeras());
+        $this->assertSame(0, StokKeluar::where('kode', self::KELUAR)->count());
+
+        // Paket LAMA yang datang terlambat tidak memunculkan / mengembalikan versi lama.
+        $this->impor($this->paket());
+        $this->assertSame(30, $this->stokBeras());
+        $this->assertSame(0, StokKeluar::where('kode', self::KELUAR)->count());
+        $this->assertSame(30, (int) StokMasuk::where('kode', self::MASUK)->value('jumlah_masuk'));
+    }
 }

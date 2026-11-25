@@ -187,6 +187,9 @@
                                 <td class="py-3 px-4 text-xs text-slate-600">
                                     {{ $j['pengungsi'] ?? 0 }} pengungsi · {{ $j['dihapus'] ?? 0 }} dihapus<br>
                                     {{ $j['masuk'] ?? 0 }} masuk · {{ $j['keluar'] ?? 0 }} keluar
+                                    @php $koreksi = ($j['masuk_diperbarui'] ?? 0) + ($j['keluar_diperbarui'] ?? 0);
+                                         $hapusLog = ($j['masuk_dihapus'] ?? 0) + ($j['keluar_dihapus'] ?? 0); @endphp
+                                    @if ($koreksi + $hapusLog > 0)<br>logistik: {{ $koreksi }} dikoreksi · {{ $hapusLog }} dihapus @endif
                                     @if (($j['barang'] ?? 0) > 0)<br>{{ $j['barang'] }} barang baru @endif
                                     @if ($r->selisih_stok_count > 0)<br><span class="font-bold text-amber-600">{{ $r->selisih_stok_count }} selisih stok</span>@endif
                                 </td>

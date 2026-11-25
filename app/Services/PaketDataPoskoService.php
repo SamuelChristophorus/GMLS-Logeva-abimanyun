@@ -249,15 +249,18 @@ class PaketDataPoskoService
         $barangBaru = [];
         $masuk = [];
         $keluar = [];
-        $kodeMasuk = StokMasuk::whereNotNull('kode')->pluck('kode')->flip();
-        $kodeKeluar = StokKeluar::whereNotNull('kode')->pluck('kode')->flip();
+        // Catatan yang sudah ada (untuk koreksi dari aplikasi) & yang pernah dihapus.
+        $kodeMasuk = StokMasuk::whereNotNull('kode')->get(['id', 'kode', 'jumlah_masuk as jumlah', 'updated_at'])->keyBy('kode');
+        $kodeKeluar = StokKeluar::whereNotNull('kode')->get(['id', 'kode', 'jumlah_keluar as jumlah', 'updated_at'])->keyBy('kode');
+        $hapusMasuk = DB::table('paket_penghapusans')->where('jenis', 'masuk')->pluck('kode')->flip();
+        $hapusKeluar = DB::table('paket_penghapusans')->where('jenis', 'keluar')->pluck('kode')->flip();
         $dipakaiMasuk = $dipakaiKeluar = [];
 
         foreach ($this->csv($isi['barang_masuk.csv']) as $r) {
-            $masuk[] = $this->periksaBarang($r, 'masuk', $cariPosko, $kategori, $logistik, $kodeMasuk, $dipakaiMasuk, $barangBaru);
+            $masuk[] = $this->periksaBarang($r, 'masuk', $cariPosko, $kategori, $logistik, $kodeMasuk, $dipakaiMasuk, $barangBaru, $hapusMasuk);
         }
         foreach ($this->csv($isi['barang_keluar.csv']) as $r) {
-            $keluar[] = $this->periksaBarang($r, 'keluar', $cariPosko, $kategori, $logistik, $kodeKeluar, $dipakaiKeluar, $barangBaru);
+            $keluar[] = $this->periksaBarang($r, 'keluar', $cariPosko, $kategori, $logistik, $kodeKeluar, $dipakaiKeluar, $barangBaru, $hapusKeluar);
         }
 
         // ---------------- PETUGAS (opsional) ----------------
@@ -565,7 +568,12 @@ class PaketDataPoskoService
         return $hasil('tambah', 'Pengungsi baru', null, $simpan);
     }
 
-    private function periksaBarang(array $r, string $jenis, callable $cariPosko, $kategori, $logistik, $kodeAda, array &$dipakai, array &$barangBaru): array
+    /**
+     * Satu baris barang masuk/keluar. Catatan yang sudah ada diperbarui /
+     * dihapus kalau aplikasi mengirim versi lebih baru (kolom opsional
+     * diubah_pada & dihapus_pada, koreksi salah input sejak 25 Nov 2026).
+     */
+    private function periksaBarang(array $r, string $jenis, callable $cariPosko, $kategori, $logistik, $kodeAda, array &$dipakai, array &$barangBaru, $pernahDihapus = []): array
     {
         $error = [];
         $kode = $r['kode'];
@@ -579,6 +587,9 @@ class PaketDataPoskoService
         $jumlah = filter_var($r[$kolomJumlah], FILTER_VALIDATE_INT);
         $tanggal = $this->tanggal($r[$kolomTanggal]);
         $dibuat = $this->waktu($r['dibuat_pada']);
+        $diubah = ($r['diubah_pada'] ?? '') === '' ? null : $this->waktu($r['diubah_pada']);
+        $dihapus = ($r['dihapus_pada'] ?? '') === '' ? null : $this->waktu($r['dihapus_pada']);
+        $lama = $kodeAda[$kode] ?? null;
 
         if (! preg_match(self::UUID, $kode)) $error[] = 'kode tidak valid';
         if (isset($dipakai[$kode])) $error[] = "kode sama dengan baris {$dipakai[$kode]}";
@@ -590,6 +601,8 @@ class PaketDataPoskoService
         if (! $tanggal instanceof Carbon) $error[] = 'Tanggal harus TAHUN-BULAN-TANGGAL';
         elseif ($tanggal->isAfter(today())) $error[] = 'Tanggal tidak boleh setelah hari ini';
         if ($dibuat === false || $dibuat === null) $error[] = 'dibuat_pada tidak valid';
+        if ($diubah === false) $error[] = 'diubah_pada tidak valid';
+        if ($dihapus === false) $error[] = 'dihapus_pada tidak valid';
         if ($jenis === 'masuk' && ! N::teks($r['sumber_bantuan'])) $error[] = 'Sumber bantuan kosong';
         if ($jenis === 'keluar' && ! array_key_exists($r['tujuan'], StokKeluar::TUJUAN)) $error[] = 'Tujuan "' . $r['tujuan'] . '" tidak dikenali';
 
@@ -602,13 +615,21 @@ class PaketDataPoskoService
             $nama = $baku->nama_item;
         }
 
-        $status = match (true) {
-            (bool) $error          => 'error',
-            isset($kodeAda[$kode]) => 'lewati',
-            default                => 'tambah',
+        // Versi aplikasi lebih baru dari yang tersimpan (dibandingkan per detik).
+        $lebihBaru = $lama && $diubah instanceof Carbon
+            && $diubah->copy()->startOfSecond()->gt(Carbon::parse($lama->updated_at)->startOfSecond());
+
+        [$status, $alasan] = match (true) {
+            (bool) $error                  => ['error', ''],
+            isset($pernahDihapus[$kode])   => ['lewati', 'Sudah dihapus'],
+            $lama && $lebihBaru && $dihapus instanceof Carbon => ['hapus', 'Dihapus di aplikasi'],
+            $lama && $lebihBaru            => ['perbarui', 'Dikoreksi di aplikasi'],
+            (bool) $lama                   => ['lewati', 'Sudah pernah diimpor'],
+            $dihapus instanceof Carbon     => ['lewati', 'Dihapus di aplikasi sebelum pernah diimpor'],
+            default                        => ['tambah', ''],
         };
 
-        if ($status === 'tambah' && ! $ada) {
+        if (in_array($status, ['tambah', 'perbarui'], true) && ! $ada) {
             $barangBaru[$kunciBarang] = ['nama_item' => $nama, 'kategori' => $kat->nama_kategori, 'kategori_id' => $kat->id, 'satuan' => $satuan];
         }
 
@@ -621,7 +642,7 @@ class PaketDataPoskoService
             'row'    => $r['_row'],
             'kode'   => $kode,
             'status' => $status,
-            'alasan' => $status === 'lewati' ? 'Sudah pernah diimpor' : '',
+            'alasan' => $alasan,
             'error'  => $error,
             'data'   => [
                 'nama_item' => $nama,
@@ -630,7 +651,10 @@ class PaketDataPoskoService
                 'satuan'    => $satuan,
                 'tanggal'   => $tanggal instanceof Carbon ? $tanggal->toDateString() : $r[$kolomTanggal],
             ],
-            'simpan' => $status !== 'tambah' ? null : [
+            'simpan' => ! in_array($status, ['tambah', 'perbarui', 'hapus'], true) ? null : [
+                'id'          => $lama?->id,
+                'jumlah_lama' => $lama ? (int) $lama->jumlah : 0,
+                'diubah'      => $diubah instanceof Carbon ? $diubah : $dibuat,
                 'kode'        => $kode,
                 'kode_posko'  => $r['kode_posko'],
                 'barang'      => $kunciBarang,
@@ -654,9 +678,10 @@ class PaketDataPoskoService
         $selisih = []; // "kode_posko|nama" -> perubahan dari catatan baru
         foreach ([[$masuk, 1], [$keluar, -1]] as [$baris, $tanda]) {
             foreach ($baris as $b) {
-                if ($b['status'] === 'tambah') {
+                if (in_array($b['status'], ['tambah', 'perbarui', 'hapus'], true)) {
                     $k = $b['simpan']['kode_posko'] . '|' . N::kunci($b['data']['nama_item']);
-                    $selisih[$k] = ($selisih[$k] ?? 0) + $tanda * $b['simpan']['jumlah'];
+                    $baru = $b['status'] === 'hapus' ? 0 : $b['simpan']['jumlah'];
+                    $selisih[$k] = ($selisih[$k] ?? 0) + $tanda * ($baru - $b['simpan']['jumlah_lama']);
                 }
             }
         }
@@ -811,10 +836,46 @@ class PaketDataPoskoService
                 foreach ($hasil[$jenis] as $b) {
                     if (! $b['simpan']) continue;
                     $s = $b['simpan'];
+                    $model = $jenis === 'masuk' ? StokMasuk::class : StokKeluar::class;
+
+                    // Koreksi / hapus dari aplikasi.
+                    $lamaCatatan = null;
+                    $jumlahLama = 0;
+                    if (in_array($b['status'], ['perbarui', 'hapus'], true)) {
+                        $lamaCatatan = $model::find($s['id']);
+                        if (! $lamaCatatan) continue;
+                        $kolomJumlah = $jenis === 'masuk' ? 'jumlah_masuk' : 'jumlah_keluar';
+                        $jumlahLama = (int) $lamaCatatan->{$kolomJumlah};
+
+                        if ($b['status'] === 'hapus') {
+                            $stokLama = StokLogistik::firstOrNew(
+                                ['lokasi_id' => $lamaCatatan->lokasi_id, 'logistik_id' => $lamaCatatan->logistik_id], ['jumlah_stok' => 0]);
+                            $stokLama->ubahJumlah(max(-$stokLama->jumlah_stok, -$tanda * $jumlahLama));
+                            $lamaCatatan->delete();
+                            // Paket lama yang datang belakangan tidak memunculkannya lagi.
+                            DB::table('paket_penghapusans')->insertOrIgnore([
+                                'kode' => $s['kode'], 'jenis' => $jenis, 'dihapus_pada' => $s['diubah'],
+                                'created_at' => now(), 'updated_at' => now(),
+                            ]);
+                            $hitung["{$jenis}_dihapus"] = ($hitung["{$jenis}_dihapus"] ?? 0) + 1;
+                            continue;
+                        }
+                    }
+
                     $barang = $logistik[$s['barang']];
                     $lokasi = $lokasiId[$s['kode_posko']];
 
-                    $catatan = $jenis === 'masuk' ? new StokMasuk : new StokKeluar;
+                    // Barang / posko lama berbeda: batalkan stok di barang lama dulu.
+                    $sama = $lamaCatatan
+                        && (int) $lamaCatatan->lokasi_id === (int) $lokasi
+                        && (int) $lamaCatatan->logistik_id === (int) $barang->id;
+                    if ($lamaCatatan && ! $sama) {
+                        $stokLama = StokLogistik::firstOrNew(
+                            ['lokasi_id' => $lamaCatatan->lokasi_id, 'logistik_id' => $lamaCatatan->logistik_id], ['jumlah_stok' => 0]);
+                        $stokLama->ubahJumlah(max(-$stokLama->jumlah_stok, -$tanda * $jumlahLama));
+                    }
+
+                    $catatan = $lamaCatatan ?? new $model;
                     $catatan->forceFill($jenis === 'masuk'
                         ? ['jumlah_masuk' => $s['jumlah'], 'sumber_bantuan' => $s['sumber'], 'tanggal_masuk' => $s['tanggal']]
                         : ['jumlah_keluar' => $s['jumlah'], 'tujuan' => $s['tujuan'], 'penerima' => $s['penerima'], 'tanggal_keluar' => $s['tanggal']]
@@ -825,12 +886,22 @@ class PaketDataPoskoService
                         'logistik_id' => $barang->id,
                         'keterangan'  => $s['keterangan'],
                         'created_at'  => $s['dibuat'],
-                    ])->save();
+                        // Versi dari aplikasi (dibandingkan saat koreksi berikutnya).
+                        'updated_at'  => $s['diubah'],
+                    ]);
+                    $catatan->timestamps = false;
+                    $catatan->save();
 
                     $stok = StokLogistik::firstOrNew(['lokasi_id' => $lokasi, 'logistik_id' => $barang->id], ['jumlah_stok' => 0]);
-                    // Stok tidak boleh negatif (aturan website).
-                    $stok->ubahJumlah(max(-$stok->jumlah_stok, $tanda * $s['jumlah']));
-                    $hitung[$jenis]++;
+                    // Stok tidak boleh negatif (aturan website). Koreksi pada barang
+                    // yang sama = satu selisih (baru - lama), bukan batal lalu tambah.
+                    $selisih = $tanda * ($s['jumlah'] - ($sama ? $jumlahLama : 0));
+                    $stok->ubahJumlah(max(-$stok->jumlah_stok, $selisih));
+                    if ($b['status'] === 'perbarui') {
+                        $hitung["{$jenis}_diperbarui"] = ($hitung["{$jenis}_diperbarui"] ?? 0) + 1;
+                    } else {
+                        $hitung[$jenis]++;
+                    }
                 }
             }
 
